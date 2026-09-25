@@ -1,6 +1,9 @@
 /* ---------- Design tokens ---------- */
 :root {
-  --night: #131a2e;      /* page background */
+  --night: #131a2e;      /* page background colour */
+  --on-gold: #131a2e;    /* text on gold buttons */
+  --texture: none;       /* layered background images (set per theme) */
+  --title-glow: rgba(217, 169, 63, 0.25);
   --panel: #1d2742;      /* inputs, dialogs */
   --line: #2f3b5e;       /* borders */
   --parchment: #ede3cc;  /* main text */
@@ -16,11 +19,148 @@
   --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 }
 
+/* ---------- Themes ----------
+   Textures are inline SVG noise filters: horizontal streaks for wood grain,
+   fine fibres plus large blotches for parchment. No image files needed. */
+
+/* Tavern: dark oak planks, warm candlelight from above */
+:root[data-theme="tavern"] {
+  --night: #2e1c10;
+  --panel: #21140b;
+  --line: #5c3f27;
+  --parchment: #eadcc0;
+  --muted: #b3a081;
+  --on-gold: #24160c;
+  --title-glow: rgba(255, 176, 80, 0.3);
+  --texture:
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(255, 170, 80, 0.13), transparent 70%),
+    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.55) 100%),
+    repeating-linear-gradient(to bottom,
+      transparent 0 158px,
+      rgba(0, 0, 0, 0.55) 158px 160px,
+      rgba(255, 220, 170, 0.05) 160px 161px,
+      transparent 161px 162px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.28' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.07 0 0 0 0 0.035 0 0 0 0 0.01 1.1 0 0 0 -0.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='h' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.6' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.75 0 0 0 0 0.5 0 0 0 0 0.28 0 0.7 0 0 -0.38'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23h)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #3a2414, #2a190e);
+}
+
+/* Parchment: aged paper for the scroll. Only the play area (and stats) is
+   parchment; the page keeps whatever background data-theme gives it. */
+[data-scroll] main,
+[data-scroll] .stats {
+  --night: #e4d5b3;
+  --panel: #f1e7cf;
+  --line: #c3ab82;
+  --parchment: #3b2a19;   /* "parchment" is the text token; here it's ink */
+  --muted: #7a6346;
+  --gold: #8a5a16;
+  --on-gold: #f7eedb;
+  --title-glow: rgba(138, 90, 22, 0.18);
+  --texture:
+    radial-gradient(ellipse at center, transparent 45%, rgba(120, 75, 25, 0.35) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.38 0 0 0 0 0.16 1.1 0 0 0 -0.48'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='8' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.12 0.9 0 0 0 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+[data-scroll] #guess-input { border-color: var(--line); }
+[data-scroll] .slot { box-shadow: none; }
+
+/* data-scroll: the play area is an unrolled scroll lying on the page background,
+   with a roller at the top and bottom. data-scroll's value picks the variant
+   (only "plain" for now); a variant only changes the knobs below. */
+[data-scroll] main {
+  --roll-h: 30px;
+  --roll-over: 14px;   /* how far the rollers stick out past the paper */
+  /* Variant knobs */
+  --paper-base: var(--night);                     /* parchment colour under the texture */
+  --paper-art: linear-gradient(transparent, transparent); /* decoration drawn on the paper */
+  --rim-bg: var(--texture), #5e3512;              /* what shows along the torn edge */
+  --paper-glow: drop-shadow(0 0 0 transparent);   /* glow that follows the torn outline */
+  --cap: linear-gradient(to bottom, #2a170a, #8a5a2c 45%, #5a3718 70%, #1f1107);  /* roller end caps */
+  position: relative;
+  flex: 0 0 auto;
+  width: min(1320px, 100% - 2 * max(20px, var(--roll-over) + 8px));
+  margin: calc(18px + var(--roll-h) / 2) auto calc(var(--roll-h) / 2);
+  padding: calc(var(--roll-h) / 2 + 12px) clamp(12px, 1vw, 28px) calc(var(--roll-h) / 2 + 16px);
+  color: var(--parchment);   /* body's text colour resolves to the page's ink, so reset it on the paper */
+  isolation: isolate;
+  /* Shadow follows the torn outline of the paper, not the element's box */
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+
+/* The paper sits behind main's content on its own layer so the torn-edge masks
+   don't also clip the rollers. Three layers:
+     .paper          unmasked, carries the glow so it can follow the torn shape
+     .paper::before  the rim colour, cut to the torn outline
+     .paper::after   the clean parchment, same tear pulled inward and blurred,
+                     so the rim shows as a soft band that follows every bite */
+.paper { display: none; }
+[data-scroll] .paper {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  filter: var(--paper-glow);
+}
+[data-scroll] .paper::before,
+[data-scroll] .paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  --edge-mask:
+    var(--edge-left) left top / var(--tear-w) auto repeat-y,
+    var(--edge-right) right top / var(--tear-w) auto repeat-y,
+    linear-gradient(#000, #000) center / calc(100% - 2 * var(--tear-w) + 2px) 100% no-repeat;
+  -webkit-mask: var(--edge-mask);
+  mask: var(--edge-mask);
+}
+[data-scroll] .paper::before {
+  --edge-left: var(--tear-left);
+  --edge-right: var(--tear-right);
+  background: var(--rim-bg);
+}
+[data-scroll] .paper::after {
+  --edge-left: var(--rim-left);
+  --edge-right: var(--rim-right);
+  background: var(--paper-art), var(--texture), var(--paper-base);
+  box-shadow: inset 0 0 40px rgba(110, 70, 25, 0.4);
+}
+
+[data-scroll] main::before,
+[data-scroll] main::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--roll-over));
+  right: calc(-1 * var(--roll-over));
+  height: var(--roll-h);
+  border-radius: calc(var(--roll-h) / 2);
+  background:
+    var(--cap) left / 18px 100% no-repeat,
+    var(--cap) right / 18px 100% no-repeat,
+    /* the rolled paper: shaded like a cylinder */
+    linear-gradient(to bottom, #7a5a2e, #d9c296 22%, #f4e8cb 42%, #e2cfa6 62%, #a9885a 85%, #6b4c24);
+  z-index: 3;
+}
+[data-scroll] main::before { top: calc(-1 * var(--roll-h) / 2); }
+[data-scroll] main::after  { bottom: calc(-1 * var(--roll-h) / 2); }
+[data-scroll] footer { margin-top: auto; }
+
+/* scroll-edges:start (generated by tools/scroll_edges.py, don't edit by hand) */
+[data-scroll] .paper {
+  --tear-w: 46px;
+  --tear-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='613'%3E%3Cpath d='M46,0 L2.7,0 L2.5,5 L2.4,10 L2.2,15 L2.5,20 L2.6,25 L2.6,30 L2.4,35 L2.3,40 L2.4,45 L2.6,50 L2.6,55 L2.5,57 L3.4,59 L4.4,61 L4.7,63 L4.7,65 L4.3,67 L3.9,69 L4.1,71 L3.8,73 L3.6,75 L3.3,77 L3.2,79 L3.1,81 L3.4,83 L3.2,88 L3.5,93 L3.5,98 L3.9,103 L3.7,108 L3.9,113 L4,118 L4.3,123 L4.1,128 L4.3,133 L4.2,138 L4.3,143 L4.4,148 L4.6,153 L4.3,158 L4.4,163 L3.9,168 L4.2,173 L3.8,178 L3.6,183 L3.7,188 L3.7,193 L3.1,198 L3,203 L3.1,208 L2.8,213 L2.6,218 L2.3,223 L2.2,228 L2.4,233 L3.1,235 L4.8,237 L6.4,239 L5.9,241 L5.7,243 L5.7,245 L4.4,247 L2.7,249 L2,251 L2.1,253 L2.1,258 L2.2,263 L2,268 L2.4,273 L2.5,278 L2.2,283 L2.3,288 L2.7,293 L2.6,298 L3,303 L2.9,308 L3.1,313 L3.3,318 L3.1,323 L3.3,328 L3.4,333 L3.7,338 L3.8,343 L3.6,348 L4,353 L3.8,358 L3.7,363 L3.8,368 L4.1,373 L3.9,378 L3.9,383 L4,388 L3.9,393 L3.8,398 L3.5,403 L3.5,408 L3.6,413 L3.5,418 L11.2,423 L17.6,425 L16.5,427 L15.8,429 L14.7,431 L10.9,433 L6.2,435 L3.3,437 L3.2,439 L3.2,444 L3.2,449 L3,454 L3.1,459 L2.9,464 L2.8,469 L2.9,474 L3,479 L3.3,484 L3.2,489 L3.2,494 L3.3,499 L3.1,504 L3.4,509 L3.5,514 L3.4,519 L3.4,524 L3.5,529 L3.4,534 L3.6,539 L3.4,544 L3.3,549 L3.4,554 L3.6,559 L3.6,564 L3.4,569 L3.5,574 L3.2,579 L2.9,584 L3,589 L2.9,594 L2.7,599 L2.9,604 L2.7,613 L46,613 Z'/%3E%3C/svg%3E");
+  --tear-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='787'%3E%3Cpath d='M0,0 L43.7,0 L43.8,5 L43.5,10 L43.6,15 L43.5,20 L43.5,25 L43.7,30 L43.7,35 L43.7,40 L43.5,45 L43.6,50 L43.6,55 L43.3,60 L43.5,65 L43.6,70 L43.3,75 L43.2,80 L43.3,85 L40,90 L36.6,92 L36,94 L35.1,96 L36.6,98 L39.5,100 L42.2,102 L43.4,104 L43.4,106 L43.1,111 L43.1,116 L43.3,121 L43,126 L43.4,131 L43.4,136 L43.3,141 L43.1,146 L43.2,151 L43.5,156 L43.6,161 L43.5,166 L43.6,171 L43.8,176 L43.6,181 L44.1,186 L43.9,191 L44.1,196 L43.9,201 L44.3,206 L44.1,211 L44.1,216 L44.2,221 L44.3,226 L43.8,228 L43.5,230 L43.1,232 L42.3,234 L41.5,236 L41.2,238 L40.1,240 L40.3,242 L40.6,244 L41.8,246 L43.5,248 L44.5,250 L44.3,252 L44.1,257 L44.1,262 L44,267 L44.2,272 L43.7,277 L43.9,282 L43.4,287 L43.4,292 L43.3,297 L43.3,302 L43.3,307 L43.1,312 L42.8,317 L42.7,322 L42.1,327 L42,332 L42.2,337 L41.7,342 L41.5,347 L41.7,352 L41.2,357 L41.5,362 L41.2,367 L41.3,372 L40.8,377 L41,382 L40.9,387 L41,392 L40.8,397 L40.9,402 L40.7,407 L40.6,412 L40.9,417 L41.1,422 L41.1,427 L41.2,432 L41.1,437 L41.5,442 L41.6,447 L41.4,452 L41.8,457 L39.7,459 L37.4,461 L38.1,463 L38.2,465 L38.9,467 L39.6,469 L40.1,471 L41.2,473 L41.5,475 L42.3,477 L42.4,479 L42.5,484 L42.3,489 L42.6,494 L42.8,499 L42.8,504 L43.1,509 L42.7,514 L43.2,519 L43.1,524 L43.1,529 L43.2,534 L42.9,539 L43.3,544 L43.2,549 L42.9,554 L42.9,559 L43.1,564 L43.2,569 L43.1,574 L43,579 L42.5,584 L42.5,589 L42.7,594 L42.4,599 L42.6,604 L42.2,609 L42.4,614 L42,619 L42,621 L36.8,623 L35.4,625 L36.1,627 L36.7,629 L35,631 L42,633 L42.2,635 L41.7,640 L41.8,645 L41.7,650 L41.8,655 L42,660 L42,665 L41.9,670 L41.7,675 L42,680 L42.1,685 L41.9,690 L42.2,695 L42,700 L42.5,705 L42.3,710 L42.7,715 L42.4,720 L42.8,725 L42.8,730 L42.9,735 L43.1,740 L43.2,745 L43.1,750 L43.1,755 L43.5,760 L43.3,765 L43.7,770 L43.4,775 L43.4,780 L43.7,787 L0,787 Z'/%3E%3C/svg%3E");
+  --rim-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:x='http://www.w3.org/1999/xlink' width='46' height='613'%3E%3Cfilter id='b' x='-50%25' y='-10%25' width='200%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='3.5'/%3E%3C/filter%3E%3Cg filter='url%28%23b%29'%3E%3Cpath id='p' d='M66,0 L6.6,0 L6.7,5 L6.5,10 L6.3,15 L6.6,20 L6.7,25 L6.7,30 L6.6,35 L6.6,40 L6.7,45 L7.1,50 L7.1,55 L6.9,57 L8,59 L9,61 L9.3,63 L9.3,65 L9.1,67 L8.8,69 L9,71 L8.6,73 L8.6,75 L8.2,77 L8.2,79 L8.2,81 L8.5,83 L8.4,88 L8.8,93 L8.7,98 L9.1,103 L8.8,108 L9.1,113 L9.1,118 L9.3,123 L9,128 L9.1,133 L9.1,138 L9,143 L9,148 L9.3,153 L9,158 L9.3,163 L8.9,168 L9.1,173 L8.8,178 L8.7,183 L8.8,188 L8.6,193 L8.1,198 L8.1,203 L8.3,208 L8,213 L7.7,218 L7.5,223 L7.3,228 L7.5,233 L8.1,235 L9.8,237 L11.3,239 L11,241 L10.7,243 L10.5,245 L9.2,247 L7.7,249 L6.9,251 L6.9,253 L7,258 L7.2,263 L7.2,268 L7.5,273 L7.6,278 L7.3,283 L7.3,288 L7.8,293 L7.7,298 L8.1,303 L8.1,308 L8.2,313 L8.2,318 L8,323 L8,328 L8,333 L8.4,338 L8.5,343 L8.2,348 L8.5,353 L8.3,358 L8.4,363 L8.6,368 L8.7,373 L8.6,378 L8.6,383 L8.7,388 L8.7,393 L8.6,398 L8.5,403 L8.5,408 L8.6,413 L8.5,418 L16.3,423 L22.6,425 L21.5,427 L20.7,429 L19.8,431 L15.9,433 L11.4,435 L8.4,437 L8.4,439 L8.5,444 L8.6,449 L8.4,454 L8.5,459 L8.2,464 L8.1,469 L8.3,474 L8.4,479 L8.6,484 L8.3,489 L8.2,494 L8.2,499 L7.8,504 L7.9,509 L8,514 L7.8,519 L7.9,524 L8.1,529 L8.3,534 L8.6,539 L8.4,544 L8.5,549 L8.4,554 L8.5,559 L8.6,564 L8.5,569 L8.5,574 L8.2,579 L7.9,584 L8.1,589 L7.9,594 L7.6,599 L7.6,604 L7.5,613 L66,613 Z'/%3E%3Cuse x:href='%23p' y='-613'/%3E%3Cuse x:href='%23p' y='613'/%3E%3C/g%3E%3C/svg%3E");
+  --rim-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:x='http://www.w3.org/1999/xlink' width='46' height='787'%3E%3Cfilter id='b' x='-50%25' y='-10%25' width='200%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='3.5'/%3E%3C/filter%3E%3Cg filter='url%28%23b%29'%3E%3Cpath id='p' d='M-20,0 L39.3,0 L39.2,5 L38.9,10 L39.1,15 L39.1,20 L39.1,25 L39.1,30 L39.2,35 L39.1,40 L38.9,45 L38.9,50 L39,55 L38.5,60 L38.7,65 L38.8,70 L38.4,75 L38.2,80 L38.2,85 L35,90 L31.8,92 L31.1,94 L30.2,96 L31.6,98 L34.4,100 L37.2,102 L38.3,104 L38.2,106 L37.9,111 L37.8,116 L38,121 L37.6,126 L38.2,131 L38.1,136 L38.1,141 L37.8,146 L38,151 L38.4,156 L38.4,161 L38.4,166 L38.5,171 L38.9,176 L38.5,181 L39.1,186 L38.9,191 L39,196 L38.8,201 L39.4,206 L39.3,211 L39.2,216 L39.3,221 L39.5,226 L38.9,228 L38.7,230 L38.1,232 L37.5,234 L36.7,236 L36.4,238 L35.5,240 L35.5,242 L35.6,244 L37,246 L38.7,248 L39.6,250 L39.3,252 L39.2,257 L39.2,262 L39.2,267 L39.3,272 L38.9,277 L38.9,282 L38.6,287 L38.5,292 L38.4,297 L38.3,302 L38.1,307 L38.1,312 L37.9,317 L37.7,322 L37.2,327 L37,332 L37.2,337 L36.5,342 L36.2,347 L36.5,352 L36,357 L36.2,362 L35.8,367 L35.9,372 L35.6,377 L35.8,382 L35.7,387 L35.9,392 L35.7,397 L35.9,402 L35.8,407 L35.8,412 L35.9,417 L36.1,422 L35.9,427 L36.2,432 L36.2,437 L36.7,442 L37,447 L36.8,452 L37.2,457 L34.9,459 L32.7,461 L33.3,463 L33.5,465 L34.1,467 L35,469 L35.3,471 L36.5,473 L36.9,475 L37.5,477 L37.6,479 L37.6,484 L37.4,489 L37.8,494 L38.1,499 L38.3,504 L38.3,509 L38.1,514 L38.7,519 L38.6,524 L38.4,529 L38.4,534 L38,539 L38.5,544 L38.4,549 L38,554 L37.9,559 L37.9,564 L37.8,569 L37.7,574 L37.7,579 L37.3,584 L37.2,589 L37.6,594 L37.4,599 L37.7,604 L37.3,609 L37.6,614 L37.2,619 L37.2,621 L32,623 L30.7,625 L31.3,627 L32,629 L30.3,631 L37.4,633 L37.7,635 L37.1,640 L37,645 L37,650 L37,655 L37,660 L37.1,665 L37.1,670 L37,675 L37,680 L37,685 L36.9,690 L37.2,695 L37.1,700 L37.6,705 L37.3,710 L37.8,715 L37.6,720 L38.1,725 L38,730 L38.2,735 L38.3,740 L38.5,745 L38.3,750 L38.3,755 L38.7,760 L38.5,765 L39,770 L38.7,775 L38.7,780 L38.9,787 L-20,787 Z'/%3E%3Cuse x:href='%23p' y='-787'/%3E%3Cuse x:href='%23p' y='787'/%3E%3C/g%3E%3C/svg%3E");
+}
+/* scroll-edges:end */
+
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--night);
+  background: var(--texture), var(--night);
+  background-attachment: fixed;
   color: var(--parchment);
   font: 500 17px/1.5 var(--body);
   min-height: 100vh;
@@ -45,7 +185,7 @@ a { color: var(--gold); }
   font: 800 clamp(2rem, 6vw, 3.4rem)/1 var(--display);
   color: var(--gold);
   letter-spacing: 0.02em;
-  text-shadow: 0 0 24px rgba(217, 169, 63, 0.25);
+  text-shadow: 0 0 24px var(--title-glow);
 }
 
 .next { justify-self: end; text-align: right; font-size: 0.85rem; color: var(--muted); }
@@ -78,16 +218,18 @@ a { color: var(--gold); }
   align-items: center;
   min-width: 118px;
   padding: 8px 14px 7px;
-  color: var(--muted);
-  background: transparent;
+  color: var(--parchment);
+  background: var(--panel);   /* solid, so the label reads over a textured background */
   border: 1px solid var(--line);
   border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   font: 700 0.95rem/1.2 var(--body);
   cursor: pointer;
 }
-.mode small { font-weight: 500; font-size: 0.75rem; }
-.mode:hover { color: var(--parchment); border-color: var(--muted); }
-.mode[aria-pressed="true"] { color: var(--night); background: var(--gold); border-color: var(--gold); }
+.mode small { font-weight: 500; font-size: 0.75rem; color: var(--muted); }
+.mode:hover { border-color: var(--gold); }
+.mode[aria-pressed="true"] { color: var(--on-gold); background: var(--gold); border-color: var(--gold); }
+.mode[aria-pressed="true"] small { color: inherit; }
 .mode .done { margin-left: 4px; }
 
 /* ---------- Main column ---------- */
@@ -155,7 +297,7 @@ main {
 .guess-btn {
   min-width: 130px;
   font: 800 1.1rem var(--display);
-  color: var(--night);
+  color: var(--on-gold);
   background: var(--gold);
   border: none;
   border-radius: 6px;
@@ -223,7 +365,7 @@ main {
 .result button {
   padding: 10px 22px;
   font: 800 1rem var(--display);
-  color: var(--night);
+  color: var(--on-gold);
   background: var(--gold);
   border: none;
   border-radius: 6px;
@@ -392,11 +534,12 @@ footer {
   z-index: 20;
   padding: 6px 12px;
   font: 700 0.8rem var(--body);
-  color: var(--parchment);
+  color: #fff;
   background: var(--bad);
-  border: 1px dashed var(--parchment);
+  border: 1px dashed #fff;
   border-radius: 6px;
   opacity: 0.8;
   cursor: pointer;
 }
 .dev-reset:hover { opacity: 1; }
+.dev-look { left: auto; right: 12px; background: #444; }

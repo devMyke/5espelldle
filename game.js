@@ -497,6 +497,20 @@ function tick() {
    Start
    ========================================================================= */
 renderHeader();
+/* Looks: data-theme sets the page background, data-scroll the style of the
+   parchment scroll the game sits on. The testing button below can switch the
+   background locally. */
+const BACKGROUNDS = ["tavern", "night"];
+const LOOK_KEY = "5espelldle-look";
+let look = { background: BACKGROUNDS[0] };
+try { look = { ...look, ...JSON.parse(localStorage.getItem(LOOK_KEY)) }; } catch { /* storage unavailable */ }
+function applyLook() {
+  if (!BACKGROUNDS.includes(look.background)) look.background = BACKGROUNDS[0];
+  document.documentElement.dataset.theme = look.background;
+  document.documentElement.dataset.scroll = "plain";
+}
+applyLook();
+
 setMode(location.hash.slice(1) || store.lastMode || DEFAULT_MODE);
 window.addEventListener("hashchange", () => setMode(location.hash.slice(1)));
 tick();
@@ -517,4 +531,18 @@ if (["localhost", "127.0.0.1", ""].includes(location.hostname)) {
     location.reload();
   });
   document.body.append(btn);
+
+  // Background preview: cycles through BACKGROUNDS
+  const bgBtn = document.createElement("button");
+  bgBtn.type = "button";
+  bgBtn.className = "dev-reset dev-look";
+  const showBg = () => { bgBtn.textContent = `Background: ${look.background}`; };
+  bgBtn.addEventListener("click", () => {
+    look.background = BACKGROUNDS[(BACKGROUNDS.indexOf(look.background) + 1) % BACKGROUNDS.length];
+    applyLook();
+    try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
+    showBg();
+  });
+  showBg();
+  document.body.append(bgBtn);
 }
