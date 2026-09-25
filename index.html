@@ -21,11 +21,13 @@
     </div>
   </header>
 
+  <nav class="modes" id="modes" aria-label="Game mode"></nav>
+
   <main>
     <p class="meta">
       Spell <strong id="puzzle-no">#1</strong>
       <span class="sep" aria-hidden="true"></span>
-      <strong id="spell-count">319</strong> spells in the pool
+      <strong id="spell-count">0</strong> spells in the pool
     </p>
 
     <div class="guess-bar">
@@ -52,13 +54,14 @@
 
     <details class="how">
       <summary>How to play</summary>
-      <p>Guess today's spell from the SRD 5.1. Each guess shows how its properties compare with the answer.</p>
+      <p>Guess today's spell. Each mode has its own daily spell, so you can play all of them. Each guess shows how its properties compare with the answer.</p>
       <ul>
         <li><span class="chip good">Green</span> is an exact match.</li>
         <li><span class="chip part">Yellow</span> is a partial match: some components, classes, damage types or saves overlap.</li>
-        <li><span class="chip bad">Red</span> is no match. An arrow means the answer's level, casting time, range or duration is higher (▲) or lower (▼).</li>
+        <li><span class="chip bad">Red</span> is no match. An arrow means the answer's level, casting time, range or duration is higher (▲) or lower (▼). On Book, ▲ means the answer comes from a newer book.</li>
       </ul>
-      <p>You have 10 spell slots. After 4 guesses you can reveal a clue from the spell's description. A new spell appears at midnight, your time.</p>
+      <p>Books run in release order: PHB, SCAG, Xanathar's, Tasha's, Fizban's, Strixhaven. Class lists are as printed in each book, without Tasha's optional additions. BG3 mode uses tabletop stats, and accepts BG3 names like Bone Chill.</p>
+      <p>You have 10 spell slots. After 4 guesses you can reveal a clue. A new spell appears at midnight, your time.</p>
     </details>
 
     <div class="board-wrap">
@@ -74,18 +77,18 @@
 
   <dialog id="stats-dialog" class="stats">
     <form method="dialog"><button class="close" aria-label="Close stats">×</button></form>
-    <h2>Your stats</h2>
+    <h2 id="stats-title">Your stats</h2>
     <div class="stat-grid" id="stat-grid"></div>
     <h3>Guess distribution</h3>
     <ol class="dist" id="dist"></ol>
   </dialog>
 
   <footer>
-    <p>Unofficial fan project, not affiliated with Wizards of the Coast.</p>
+    <p>5eSpellDLE is unofficial Fan Content permitted under the <a href="https://company.wizards.com/en/legal/fancontentpolicy">Fan Content Policy</a>. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</p>
     <p>This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC, available at
       <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com</a>. The SRD 5.1 is licensed under the
       <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.
-      Spell data prepared by the <a href="https://github.com/5e-bits/5e-database">5e-database</a> project.</p>
+      Spell data prepared by the <a href="https://github.com/5e-bits/5e-database">5e-database</a> project. Baldur's Gate 3 spell list from <a href="https://bg3.wiki">bg3.wiki</a>.</p>
   </footer>
 
   <script src="spells.js"></script>

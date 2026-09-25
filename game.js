@@ -7,7 +7,18 @@ const MAX_GUESSES = 10;          // number of spell slots
 const CLUE_AFTER = 4;            // guesses before the clue unlocks
 const LAUNCH = [2026, 8, 25];    // puzzle #1 date: [year, month (0 = Jan), day]
 const SHUFFLE_SEED = 5051;       // changing this changes every future answer
-const STORE_KEY = "5espelldle:v1";
+const STORE_KEY = "5espelldle:v2";
+
+/* Game modes. Each has its own spell pool, daily answer, progress and stats.
+   Add a mode by adding a line; the filter decides which spells are in it. */
+const MODES = [
+  { id: "easy",   label: "Easy",        hint: "Cantrips and 1st level",   filter: s => s.level <= 1 },
+  { id: "medium", label: "Medium",      hint: "Up to 3rd level",          filter: s => s.level <= 3 },
+  { id: "hard",   label: "Hard",        hint: "Up to 5th level",          filter: s => s.level <= 5 },
+  { id: "magus",  label: "Grand Magus", hint: "Every spell, up to 9th",   filter: () => true },
+  { id: "bg3",    label: "BG3",         hint: "Spells in Baldur's Gate 3", filter: s => s.bg3 },
+];
+const DEFAULT_MODE = "magus";
 
 /* =========================================================================
    Columns: what each tile shows and how it is compared with the answer.
@@ -33,6 +44,7 @@ const COLUMNS = [
     show: s => s.classes.map(c => CLASS_ABBR[c] || c).join(" ") },
   { label: "Damage",        type: "set",   get: s => s.damage },
   { label: "Save / Attack", type: "set",   get: s => s.save },
+  { label: "Book",          type: "rank",  show: s => s.book, rank: s => s.bookRank },
 ];
 for (const col of COLUMNS) {
   if (!col.show) col.show = s => col.get(s).join("\n");
@@ -48,7 +60,6 @@ function compare(col, guess, answer) {
     if (g === null || a === null || g === a) return { cls: "bad" };
     return { cls: "bad", arrow: a > g ? "up" : "down" };
   }
-  // set
   const g = new Set(col.get(guess)), a = new Set(col.get(answer));
   const same = g.size === a.size && [...g].every(x => a.has(x));
   if (same) return { cls: "good" };
@@ -56,9 +67,9 @@ function compare(col, guess, answer) {
 }
 
 /* =========================================================================
-   Daily answer: every browser computes the same spell from the date,
-   so no server is needed. The spell list is shuffled once with a fixed
-   seed, then each day takes the next spell from that order.
+   Daily answer: every browser computes the same spell from the date, so no
+   server is needed. Each mode's pool is shuffled once with a fixed seed,
+   then each day takes the next spell from that order.
    ========================================================================= */
 function dayIndex(date = new Date()) {
   const today = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
@@ -75,22 +86,26 @@ function seededRandom(seed) {            // "mulberry32", a tiny repeatable RNG
   };
 }
 
-function dailyOrder() {
-  const rand = seededRandom(SHUFFLE_SEED);
-  const order = SPELLS.map((_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) {
+function shuffled(list, seed) {
+  const rand = seededRandom(seed);
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
+    [out[i], out[j]] = [out[j], out[i]];
   }
-  return order;
+  return out;
 }
 
 const TODAY = dayIndex();
-const ANSWER = SPELLS[dailyOrder()[TODAY % SPELLS.length]];
-const BY_NAME = new Map(SPELLS.map(s => [s.name.toLowerCase(), s]));
+const key = n => n.toLowerCase().replace(/[^a-z]/g, "");
+const LOOKUP = new Map();                 // any accepted name (incl. BG3/SRD names) -> spell
+for (const s of SPELLS) {
+  LOOKUP.set(key(s.name), s);
+  for (const a of s.aliases) LOOKUP.set(key(a), s);
+}
 
 /* =========================================================================
-   Saved progress (kept in this browser only)
+   Saved progress (kept in this browser only), one slot per mode
    ========================================================================= */
 function loadStore() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
@@ -101,18 +116,28 @@ function saveStore() {
 }
 
 const store = loadStore();
-store.stats ??= { played: 0, wins: 0, streak: 0, best: 0, lastWin: null, dist: Array(MAX_GUESSES).fill(0) };
-if (store.day !== TODAY) {
-  store.day = TODAY;
-  store.guesses = [];
-  store.clueShown = false;
-  store.recorded = false;
+store.modes ??= {};
+for (const m of MODES) {
+  const st = (store.modes[m.id] ??= {});
+  st.stats ??= { played: 0, wins: 0, streak: 0, best: 0, lastWin: null, dist: Array(MAX_GUESSES).fill(0) };
+  if (st.day !== TODAY) {
+    Object.assign(st, { day: TODAY, guesses: [], clueShown: false, recorded: false });
+  }
 }
 saveStore();
 
-const guessedSpells = () => store.guesses.map(n => BY_NAME.get(n.toLowerCase())).filter(Boolean);
-const isWon = () => store.guesses.includes(ANSWER.name);
-const isOver = () => isWon() || store.guesses.length >= MAX_GUESSES;
+/* Current mode */
+let MODE, POOL, ANSWER, state;
+
+function answerFor(mode) {
+  const pool = SPELLS.filter(mode.filter);
+  const seed = SHUFFLE_SEED + MODES.indexOf(mode) * 104729;
+  return { pool, answer: shuffled(pool, seed)[TODAY % pool.length] };
+}
+
+const guessedSpells = () => state.guesses.map(n => LOOKUP.get(key(n))).filter(Boolean);
+const isWon = () => state.guesses.includes(ANSWER.name);
+const isOver = () => isWon() || state.guesses.length >= MAX_GUESSES;
 
 /* =========================================================================
    Rendering
@@ -122,7 +147,7 @@ const els = {
   input: $("guess-input"), list: $("suggestions"), guessBtn: $("guess-btn"),
   clueBtn: $("clue-btn"), clue: $("clue"), rows: $("rows"), summary: $("summary-row"),
   header: $("header-row"), slots: $("slots"), slotsLabel: $("slots-label"),
-  message: $("message"), result: $("result"),
+  message: $("message"), result: $("result"), modes: $("modes"),
 };
 
 function cell(text, classes) {
@@ -135,18 +160,34 @@ function cell(text, classes) {
   return td;
 }
 
+function renderModes() {
+  els.modes.replaceChildren(...MODES.map(m => {
+    const st = store.modes[m.id];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mode";
+    b.setAttribute("aria-pressed", String(m === MODE));
+    const done = st.guesses.length && answerFor(m).answer.name === st.guesses.at(-1) ? " ✓"
+               : st.guesses.length >= MAX_GUESSES ? " ✗" : "";
+    b.innerHTML = `<span></span><small></small>`;
+    b.firstChild.textContent = m.label + done;
+    b.lastChild.textContent = m.hint;
+    b.addEventListener("click", () => setMode(m.id));
+    return b;
+  }));
+}
+
 function renderHeader() {
   const th = document.createElement("th");
   th.textContent = "Spell";
   th.className = "name-col";
   th.scope = "col";
-  els.header.append(th);
-  for (const col of COLUMNS) {
+  els.header.replaceChildren(th, ...COLUMNS.map(col => {
     const h = document.createElement("th");
     h.scope = "col";
     h.textContent = col.label;
-    els.header.append(h);
-  }
+    return h;
+  }));
 }
 
 function renderRow(spell, animate) {
@@ -155,10 +196,14 @@ function renderRow(spell, animate) {
   COLUMNS.forEach((col, i) => {
     const r = compare(col, spell, ANSWER);
     const td = cell(col.show(spell), `tile ${r.cls}${r.arrow ? " " + r.arrow : ""}`);
-    if (r.arrow) td.title = `The answer's ${col.label.toLowerCase()} is ${r.arrow === "up" ? "higher" : "lower"}`;
+    if (r.arrow) {
+      const dir = col.label === "Book" ? (r.arrow === "up" ? "newer" : "older")
+                                       : (r.arrow === "up" ? "higher" : "lower");
+      td.title = `The answer's ${col.label.toLowerCase()} is ${dir}`;
+    }
     if (animate) {
       td.classList.add("reveal");
-      td.style.animationDelay = `${i * 90}ms`;
+      td.style.animationDelay = `${i * 80}ms`;
     }
     tr.append(td);
   });
@@ -175,8 +220,7 @@ function renderSummary() {
     if (results.some(([, r]) => r.cls === "good")) {
       els.summary.append(cell(col.show(ANSWER), "tile good"));
     } else if (col.type === "rank" && results.some(([, r]) => r.arrow)) {
-      // Narrow the range: the answer is above every "up" guess and below every "down" guess
-      let lo = null, hi = null;
+      let lo = null, hi = null;     // answer is above every "up" guess and below every "down" guess
       for (const [g, r] of results) {
         if (r.arrow === "up" && (!lo || col.rank(g) > col.rank(lo))) lo = g;
         if (r.arrow === "down" && (!hi || col.rank(g) < col.rank(hi))) hi = g;
@@ -192,7 +236,7 @@ function renderSummary() {
 }
 
 function renderSlots() {
-  const left = MAX_GUESSES - store.guesses.length;
+  const left = MAX_GUESSES - state.guesses.length;
   els.slots.replaceChildren(...Array.from({ length: MAX_GUESSES }, (_, i) => {
     const d = document.createElement("div");
     d.className = "slot" + (i >= left ? " spent" : "");
@@ -201,11 +245,18 @@ function renderSlots() {
   els.slotsLabel.textContent = `${left} spell slot${left === 1 ? "" : "s"} left`;
 }
 
+function clueText() {
+  if (ANSWER.clue) return ANSWER.clue;
+  // Spells outside the free SRD have no description we can show, so give a name hint instead
+  const words = ANSWER.name.split(/\s+/);
+  return `This spell's name has ${words.length} word${words.length === 1 ? "" : "s"} and starts with "${ANSWER.name[0]}".`;
+}
+
 function renderClue() {
-  const n = store.guesses.length;
-  els.clue.textContent = ANSWER.clue;
-  els.clue.hidden = !store.clueShown;
-  if (store.clueShown) {
+  const n = state.guesses.length;
+  els.clue.textContent = clueText();
+  els.clue.hidden = !state.clueShown;
+  if (state.clueShown) {
     els.clueBtn.disabled = true;
     els.clueBtn.textContent = "Clue shown";
   } else if (n >= CLUE_AFTER) {
@@ -219,23 +270,53 @@ function renderClue() {
 }
 
 function renderResult() {
-  if (!isOver()) { els.result.hidden = true; return; }
+  const over = isOver();
+  els.input.disabled = els.guessBtn.disabled = over;
+  if (!over) {
+    els.result.hidden = true;
+    els.input.placeholder = "Type a spell name…";
+    return;
+  }
   const won = isWon();
   els.result.replaceChildren();
   const h = document.createElement("h2");
   h.textContent = won ? ANSWER.name : "Out of spell slots";
   const p = document.createElement("p");
   p.textContent = won
-    ? `Solved in ${store.guesses.length} guess${store.guesses.length === 1 ? "" : "es"}. A new spell arrives at midnight.`
-    : `Today's spell was ${ANSWER.name}. A new spell arrives at midnight.`;
+    ? `Solved in ${state.guesses.length} guess${state.guesses.length === 1 ? "" : "es"}. Try another mode, or come back at midnight.`
+    : `Today's spell was ${ANSWER.name}. Try another mode, or come back at midnight.`;
   const btn = document.createElement("button");
   btn.type = "button";
   btn.textContent = "Copy result";
   btn.addEventListener("click", shareResult);
   els.result.append(h, p, btn);
   els.result.hidden = false;
-  els.input.disabled = els.guessBtn.disabled = true;
   els.input.placeholder = won ? "Solved – see you tomorrow" : "Come back tomorrow";
+}
+
+function renderAll() {
+  $("puzzle-no").textContent = `#${TODAY + 1}`;
+  $("spell-count").textContent = POOL.length;
+  els.rows.replaceChildren();
+  guessedSpells().forEach(s => renderRow(s, false));
+  renderModes();
+  renderSummary();
+  renderSlots();
+  renderClue();
+  renderResult();
+}
+
+function setMode(id) {
+  MODE = MODES.find(m => m.id === id) || MODES.find(m => m.id === DEFAULT_MODE);
+  ({ pool: POOL, answer: ANSWER } = answerFor(MODE));
+  state = store.modes[MODE.id];
+  store.lastMode = MODE.id;
+  saveStore();
+  if (location.hash.slice(1) !== MODE.id) history.replaceState(null, "", "#" + MODE.id);
+  say("");
+  els.input.value = "";
+  closeList();
+  renderAll();
 }
 
 /* =========================================================================
@@ -246,16 +327,17 @@ function say(text) {
 }
 
 function submitGuess(name) {
-  const spell = BY_NAME.get(name.trim().toLowerCase());
   if (isOver()) return;
-  if (!spell) {
-    say("Pick a spell from the list.");
+  const spell = LOOKUP.get(key(name));
+  if (!spell || !MODE.filter(spell)) {
+    say(spell ? `${spell.name} isn't in ${MODE.label} mode (${MODE.hint.toLowerCase()}).`
+              : "Pick a spell from the list.");
     els.input.classList.remove("shake"); void els.input.offsetWidth; els.input.classList.add("shake");
     return;
   }
-  if (store.guesses.includes(spell.name)) { say(`You already guessed ${spell.name}.`); return; }
+  if (state.guesses.includes(spell.name)) { say(`You already guessed ${spell.name}.`); return; }
 
-  store.guesses.push(spell.name);
+  state.guesses.push(spell.name);
   if (isOver()) recordStats();
   saveStore();
 
@@ -266,41 +348,42 @@ function submitGuess(name) {
   renderSummary();
   renderSlots();
   renderClue();
-  // Wait for the tiles to finish flipping before showing the result
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  setTimeout(renderResult, reduced ? 0 : COLUMNS.length * 90 + 450);
+  setTimeout(() => { renderResult(); renderModes(); }, reduced ? 0 : COLUMNS.length * 80 + 450);
 }
 
 function recordStats() {
-  if (store.recorded) return;
-  const s = store.stats;
+  if (state.recorded) return;
+  const s = state.stats;
   s.played++;
   if (isWon()) {
     s.wins++;
     s.streak = s.lastWin === TODAY - 1 ? s.streak + 1 : 1;
     s.best = Math.max(s.best, s.streak);
     s.lastWin = TODAY;
-    s.dist[store.guesses.length - 1]++;
+    s.dist[state.guesses.length - 1]++;
   } else {
     s.streak = 0;
   }
-  store.recorded = true;
+  state.recorded = true;
 }
 
 /* ---------- Autocomplete ---------- */
 let active = -1;
-let current = [];
+let current = [];      // [{ spell, via }]  "via" is the alias that matched, if any
 
 function findMatches(q) {
   q = q.trim().toLowerCase();
   if (!q) return [];
-  const guessed = new Set(store.guesses);
+  const guessed = new Set(state.guesses);
   const starts = [], contains = [];
-  for (const s of SPELLS) {
+  for (const s of POOL) {
     if (guessed.has(s.name)) continue;
-    const n = s.name.toLowerCase();
-    if (n.startsWith(q)) starts.push(s);
-    else if (n.includes(q)) contains.push(s);
+    for (const n of [s.name, ...s.aliases]) {
+      const l = n.toLowerCase();
+      if (l.startsWith(q)) { starts.push({ spell: s, via: n === s.name ? null : n }); break; }
+      if (l.includes(q)) { contains.push({ spell: s, via: n === s.name ? null : n }); break; }
+    }
   }
   return starts.concat(contains).slice(0, 8);
 }
@@ -312,15 +395,14 @@ function describe(s) {
 function openList() {
   current = findMatches(els.input.value);
   active = current.length ? 0 : -1;
-  els.list.replaceChildren(...current.map((s, i) => {
+  els.list.replaceChildren(...current.map(({ spell, via }, i) => {
     const li = document.createElement("li");
     li.id = `opt-${i}`;
     li.role = "option";
-    li.setAttribute("aria-selected", i === active);
     li.innerHTML = `<span></span><small></small>`;
-    li.firstChild.textContent = s.name;
-    li.lastChild.textContent = describe(s);
-    li.addEventListener("mousedown", e => { e.preventDefault(); submitGuess(s.name); });
+    li.firstChild.textContent = spell.name + (via ? ` (${via})` : "");
+    li.lastChild.textContent = describe(spell);
+    li.addEventListener("mousedown", e => { e.preventDefault(); submitGuess(spell.name); });
     return li;
   }));
   els.list.hidden = !current.length;
@@ -352,14 +434,14 @@ els.input.addEventListener("keydown", e => {
   else if (e.key === "Escape") closeList();
   else if (e.key === "Enter") {
     e.preventDefault();
-    submitGuess(active >= 0 ? current[active].name : els.input.value);
+    submitGuess(active >= 0 ? current[active].spell.name : els.input.value);
   }
 });
 els.guessBtn.addEventListener("click", () =>
-  submitGuess(active >= 0 && current.length ? current[active].name : els.input.value));
+  submitGuess(active >= 0 && current.length ? current[active].spell.name : els.input.value));
 
 els.clueBtn.addEventListener("click", () => {
-  store.clueShown = true;
+  state.clueShown = true;
   saveStore();
   renderClue();
 });
@@ -370,11 +452,11 @@ els.clueBtn.addEventListener("click", () => {
 async function shareResult() {
   const emoji = { good: "🟩", part: "🟨", bad: "🟥" };
   const rows = guessedSpells().map(g => COLUMNS.map(c => emoji[compare(c, g, ANSWER).cls]).join(""));
-  const score = isWon() ? store.guesses.length : "X";
+  const score = isWon() ? state.guesses.length : "X";
   const text = [
-    `5eSpellDLE #${TODAY + 1} ${score}/${MAX_GUESSES}${store.clueShown ? " (clue used)" : ""}`,
+    `5eSpellDLE ${MODE.label} #${TODAY + 1} ${score}/${MAX_GUESSES}${state.clueShown ? " (clue used)" : ""}`,
     ...rows,
-    location.origin + location.pathname,
+    location.origin + location.pathname + "#" + MODE.id,
   ].join("\n");
   try {
     await navigator.clipboard.writeText(text);
@@ -385,16 +467,17 @@ async function shareResult() {
 }
 
 function openStats() {
-  const s = store.stats;
+  const s = state.stats;
   const streak = s.lastWin === TODAY || s.lastWin === TODAY - 1 ? s.streak : 0;
   const winPct = s.played ? Math.round((s.wins / s.played) * 100) : 0;
+  $("stats-title").textContent = `${MODE.label} stats`;
   $("stat-grid").innerHTML = [
     [s.played, "Played"], [winPct, "Win %"], [streak, "Streak"], [s.best, "Best streak"],
   ].map(([v, l]) => `<div><strong>${v}</strong><span>${l}</span></div>`).join("");
 
   const max = Math.max(1, ...s.dist);
   $("dist").innerHTML = s.dist.map((n, i) => {
-    const today = isWon() && store.guesses.length === i + 1 ? " today" : "";
+    const today = isWon() && state.guesses.length === i + 1 ? " today" : "";
     return `<li><b>${i + 1}</b><span class="bar${today}" style="width:${8 + (n / max) * 88}%">${n}</span></li>`;
   }).join("");
   $("stats-dialog").showModal();
@@ -413,13 +496,25 @@ function tick() {
 /* =========================================================================
    Start
    ========================================================================= */
-$("puzzle-no").textContent = `#${TODAY + 1}`;
-$("spell-count").textContent = SPELLS.length;
 renderHeader();
-guessedSpells().forEach(s => renderRow(s, false));
-renderSummary();
-renderSlots();
-renderClue();
-renderResult();
+setMode(location.hash.slice(1) || store.lastMode || DEFAULT_MODE);
+window.addEventListener("hashchange", () => setMode(location.hash.slice(1)));
 tick();
 setInterval(tick, 1000);
+
+/* =========================================================================
+   Local testing: a reset button that only appears when the page runs on
+   your own computer (Live Server or a double-clicked file), never online.
+   ========================================================================= */
+if (["localhost", "127.0.0.1", ""].includes(location.hostname)) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "dev-reset";
+  btn.textContent = "Reset progress (local only)";
+  btn.title = "Clears today's guesses and all stats in every mode";
+  btn.addEventListener("click", () => {
+    try { localStorage.removeItem(STORE_KEY); } catch { /* storage unavailable */ }
+    location.reload();
+  });
+  document.body.append(btn);
+}

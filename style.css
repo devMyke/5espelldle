@@ -9,7 +9,7 @@
   --good: #3e8e57;       /* exact match */
   --part: #c79628;       /* partial match */
   --bad: #93302a;        /* no match */
-  --tile-w: 100px;
+  --tile-w: 96px;
   --name-w: 118px;
   --tile-h: 76px;
   --display: "Cinzel", "Trajan Pro", Georgia, serif;
@@ -62,6 +62,33 @@ a { color: var(--gold); }
   cursor: pointer;
 }
 .icon-btn:hover { border-color: var(--gold); }
+
+/* ---------- Mode selector ---------- */
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px auto 0;
+  padding: 0 12px;
+}
+.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 118px;
+  padding: 8px 14px 7px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: 700 0.95rem/1.2 var(--body);
+  cursor: pointer;
+}
+.mode small { font-weight: 500; font-size: 0.75rem; }
+.mode:hover { color: var(--parchment); border-color: var(--muted); }
+.mode[aria-pressed="true"] { color: var(--night); background: var(--gold); border-color: var(--gold); }
+.mode .done { margin-left: 4px; }
 
 /* ---------- Main column ---------- */
 main {
@@ -356,3 +383,20 @@ footer {
 /* Keep the spell name visible while scrolling the board sideways on phones */
 .board .name, .board .name-col, .summary .label { position: sticky; left: 0; z-index: 2; }
 .board .name-col { background: var(--night); }
+
+/* Local-testing reset button (only added on localhost / file://) */
+.dev-reset {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  padding: 6px 12px;
+  font: 700 0.8rem var(--body);
+  color: var(--parchment);
+  background: var(--bad);
+  border: 1px dashed var(--parchment);
+  border-radius: 6px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+.dev-reset:hover { opacity: 1; }
