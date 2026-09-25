@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5eSpellDLE – guess the daily D&amp;D 5e spell</title>
+  <meta name="description" content="A daily guessing game for Dungeons & Dragons 5th edition spells.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Alegreya+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <button class="icon-btn" id="stats-btn" type="button" aria-haspopup="dialog">Stats</button>
+    <h1 class="title">5eSpellDLE</h1>
+    <div class="next">
+      <span>Next spell in</span>
+      <strong id="countdown">--:--:--</strong>
+    </div>
+  </header>
+
+  <main>
+    <p class="meta">
+      Spell <strong id="puzzle-no">#1</strong>
+      <span class="sep" aria-hidden="true"></span>
+      <strong id="spell-count">319</strong> spells in the pool
+    </p>
+
+    <div class="guess-bar">
+      <button type="button" class="clue-btn" id="clue-btn" disabled>Clue in 4 guesses</button>
+      <div class="combo">
+        <input id="guess-input" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Type a spell name…"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions">
+        <ul id="suggestions" role="listbox" hidden></ul>
+      </div>
+      <button type="button" class="guess-btn" id="guess-btn">Guess</button>
+    </div>
+
+    <p id="clue" class="clue" hidden></p>
+
+    <div class="slots-row">
+      <div id="slots" class="slots" aria-hidden="true"></div>
+      <span id="slots-label">10 spell slots left</span>
+    </div>
+
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" hidden></section>
+
+    <details class="how">
+      <summary>How to play</summary>
+      <p>Guess today's spell from the SRD 5.1. Each guess shows how its properties compare with the answer.</p>
+      <ul>
+        <li><span class="chip good">Green</span> is an exact match.</li>
+        <li><span class="chip part">Yellow</span> is a partial match: some components, classes, damage types or saves overlap.</li>
+        <li><span class="chip bad">Red</span> is no match. An arrow means the answer's level, casting time, range or duration is higher (▲) or lower (▼).</li>
+      </ul>
+      <p>You have 10 spell slots. After 4 guesses you can reveal a clue from the spell's description. A new spell appears at midnight, your time.</p>
+    </details>
+
+    <div class="board-wrap">
+      <table class="board" id="board">
+        <thead>
+          <tr class="summary" id="summary-row"></tr>
+          <tr id="header-row"></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <dialog id="stats-dialog" class="stats">
+    <form method="dialog"><button class="close" aria-label="Close stats">×</button></form>
+    <h2>Your stats</h2>
+    <div class="stat-grid" id="stat-grid"></div>
+    <h3>Guess distribution</h3>
+    <ol class="dist" id="dist"></ol>
+  </dialog>
+
+  <footer>
+    <p>Unofficial fan project, not affiliated with Wizards of the Coast.</p>
+    <p>This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC, available at
+      <a href="https://dnd.wizards.com/resources/systems-reference-document">dnd.wizards.com</a>. The SRD 5.1 is licensed under the
+      <a href="https://creativecommons.org/licenses/by/4.0/legalcode">Creative Commons Attribution 4.0 International License</a>.
+      Spell data prepared by the <a href="https://github.com/5e-bits/5e-database">5e-database</a> project.</p>
+  </footer>
+
+  <script src="spells.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
