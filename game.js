@@ -121,8 +121,9 @@ for (const m of MODES) {
   const st = (store.modes[m.id] ??= {});
   st.stats ??= { played: 0, wins: 0, streak: 0, best: 0, lastWin: null, dist: Array(MAX_GUESSES).fill(0) };
   if (st.day !== TODAY) {
-    Object.assign(st, { day: TODAY, guesses: [], clueShown: false, recorded: false });
+    Object.assign(st, { day: TODAY, guesses: [], clueShown: false, divineCols: [], recorded: false });
   }
+  st.divineCols ??= [];   // progress saved before the divine intervention easter egg existed
 }
 saveStore();
 
@@ -213,12 +214,15 @@ function renderRow(spell, animate) {
 function renderSummary() {
   els.summary.replaceChildren(cell("Summary", "tile label"));
   const guesses = guessedSpells();
-  for (const col of COLUMNS) {
-    if (!guesses.length) { els.summary.append(cell("", "tile empty")); continue; }
+  COLUMNS.forEach((col, i) => {
     const results = guesses.map(g => [g, compare(col, g, ANSWER)]);
 
     if (results.some(([, r]) => r.cls === "good")) {
       els.summary.append(cell(col.show(ANSWER), "tile good"));
+    } else if (state.divineCols?.includes(i)) {      // revealed by the divine intervention easter egg
+      els.summary.append(cell(col.show(ANSWER), "tile blessed"));
+    } else if (!guesses.length) {
+      els.summary.append(cell("", "tile empty"));
     } else if (col.type === "rank" && results.some(([, r]) => r.arrow)) {
       let lo = null, hi = null;     // answer is above every "up" guess and below every "down" guess
       for (const [g, r] of results) {
@@ -232,7 +236,7 @@ function renderSummary() {
     } else {
       els.summary.append(cell("", "tile bad"));
     }
-  }
+  });
 }
 
 function renderSlots() {
@@ -447,6 +451,99 @@ els.clueBtn.addEventListener("click", () => {
 });
 
 /* =========================================================================
+   Easter egg: click the "D" in the title 7 times to call on the gods.
+   A d100 Divine Intervention check (DC 20: a roll of 20 or lower succeeds)
+   reveals up to 3 summary tiles the player hasn't found yet, shaded violet.
+   It's on top of the normal clue, not instead of it. Usable once, ever, per
+   browser.
+   The die is the tumble-then-settle roller from the tavern dice tray.
+   ========================================================================= */
+const DIVINE = { clicks: 7, dc: 20, sides: 100, reveals: 3, showFor: 5500 };
+let divineClicks = 0, divineClickTimer = 0;
+
+$("egg-d").addEventListener("click", () => {
+  if (store.divineUsed) return;
+  clearTimeout(divineClickTimer);
+  divineClickTimer = setTimeout(() => { divineClicks = 0; }, 2000);   // clicks must come in a burst
+  if (++divineClicks < DIVINE.clicks) return;
+  divineClicks = 0;
+  store.divineUsed = true;   // spent the moment it starts, so a reload mid-roll doesn't earn a retry
+  saveStore();
+  divineIntervention();
+});
+
+function divineIntervention() {
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const roll = 1 + Math.floor(Math.random() * DIVINE.sides);
+  const success = roll <= DIVINE.dc;
+
+  const box = document.createElement("div");
+  box.className = "divine";
+  box.setAttribute("role", "status");
+  box.innerHTML = `
+    <div class="divine-die"><span class="divine-shape" aria-hidden="true"></span><span class="divine-face">?</span><span class="divine-kind">d100</span></div>
+    <div class="divine-text"><strong>Divine Intervention</strong><span>check · DC ${DIVINE.dc}</span><b class="divine-result"></b></div>`;
+  document.body.append(box);
+  const die = box.querySelector(".divine-die"), face = box.querySelector(".divine-face");
+
+  // Tumble through random faces, then land on the real roll
+  setTimeout(() => {
+    die.classList.add("rolling");
+    const tumble = setInterval(() => { face.textContent = 1 + Math.floor(Math.random() * DIVINE.sides); }, 70);
+    setTimeout(() => {
+      clearInterval(tumble);
+      face.textContent = roll;
+      die.classList.replace("rolling", "settled");
+      const result = box.querySelector(".divine-result");
+      result.textContent = success ? "Success!!!" : "Failed";
+      result.classList.add(success ? "success" : "failed");
+      if (success) divineReveal();
+      setTimeout(() => (calm ? box.remove() : dissolve(box)), DIVINE.showFor);
+    }, calm ? 0 : 900 + Math.random() * 700);
+  }, calm ? 0 : 450);
+}
+
+/* Reveal up to DIVINE.reveals summary columns the player hasn't turned green yet */
+function divineReveal() {
+  if (isWon()) { say("The gods smile on you, but you've already solved it."); return; }
+  const guesses = guessedSpells();
+  const hidden = COLUMNS.map((col, i) => i).filter(i =>
+    !state.divineCols.includes(i) && !guesses.some(g => compare(COLUMNS[i], g, ANSWER).cls === "good"));
+  const picks = shuffled(hidden, Math.floor(Math.random() * 1e9)).slice(0, DIVINE.reveals);
+  if (!picks.length) { say("The gods smile on you, but there's nothing left to reveal."); return; }
+  state.divineCols.push(...picks);
+  saveStore();
+  renderSummary();
+  const names = picks.sort((a, b) => a - b).map(i => COLUMNS[i].label);
+  say(`The gods reveal the ${names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names.at(-1) : names[0]}.`);
+}
+
+/* "I don't feel so good": the box crumbles into dust that drifts away,
+   sweeping left to right, while the box itself fades out behind it */
+function dissolve(el) {
+  const r = el.getBoundingClientRect();
+  const colours = ["#d9a93f", "#8a5a16", "#eadcc0", "#3a2f22", "#b3a081"];
+  for (let i = 0; i < 140; i++) {
+    const p = document.createElement("span");
+    p.className = "dust";
+    const x = Math.random(), y = Math.random(), size = 2 + Math.random() * 3;
+    Object.assign(p.style, {
+      left: `${r.left + x * r.width}px`, top: `${r.top + y * r.height}px`,
+      width: `${size}px`, height: `${size}px`,
+      background: colours[i % colours.length],
+      animationDelay: `${x * 1.1 + Math.random() * 0.4}s`,   // the left side goes first
+      animationDuration: `${1.2 + Math.random() * 1.2}s`,
+    });
+    p.style.setProperty("--dx", `${40 + Math.random() * 120}px`);
+    p.style.setProperty("--dy", `${-20 - Math.random() * 80}px`);
+    document.body.append(p);
+    p.addEventListener("animationend", () => p.remove());
+  }
+  el.classList.add("dissolving");
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* =========================================================================
    Sharing, stats dialog, countdown
    ========================================================================= */
 async function shareResult() {
@@ -498,16 +595,21 @@ function tick() {
    ========================================================================= */
 renderHeader();
 /* Looks: data-theme sets the page background, data-scroll the style of the
-   parchment scroll the game sits on. The testing button below can switch the
-   background locally. */
+   parchment scroll the game sits on. Every day the scroll matches the school
+   of that day's Grand Magus answer, whichever mode you play (a quiet hint for
+   anyone who notices); schools without their own design yet use the plain
+   scroll. The testing buttons below can override both locally. */
 const BACKGROUNDS = ["tavern", "night"];
+const SCROLLS = ["daily", "plain", "evocation"];
 const LOOK_KEY = "5espelldle-look";
-let look = { background: BACKGROUNDS[0] };
+const DAILY_SCROLL = answerFor(MODES.find(m => m.id === "magus")).answer.school.toLowerCase();
+let look = { background: BACKGROUNDS[0], scroll: "daily" };
 try { look = { ...look, ...JSON.parse(localStorage.getItem(LOOK_KEY)) }; } catch { /* storage unavailable */ }
 function applyLook() {
   if (!BACKGROUNDS.includes(look.background)) look.background = BACKGROUNDS[0];
+  if (!SCROLLS.includes(look.scroll)) look.scroll = "daily";
   document.documentElement.dataset.theme = look.background;
-  document.documentElement.dataset.scroll = "plain";
+  document.documentElement.dataset.scroll = look.scroll === "daily" ? DAILY_SCROLL : look.scroll;
 }
 applyLook();
 
@@ -532,17 +634,25 @@ if (["localhost", "127.0.0.1", ""].includes(location.hostname)) {
   });
   document.body.append(btn);
 
-  // Background preview: cycles through BACKGROUNDS
-  const bgBtn = document.createElement("button");
-  bgBtn.type = "button";
-  bgBtn.className = "dev-reset dev-look";
-  const showBg = () => { bgBtn.textContent = `Background: ${look.background}`; };
-  bgBtn.addEventListener("click", () => {
-    look.background = BACKGROUNDS[(BACKGROUNDS.indexOf(look.background) + 1) % BACKGROUNDS.length];
-    applyLook();
-    try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
-    showBg();
-  });
-  showBg();
-  document.body.append(bgBtn);
+  // Look preview: one button cycles the background, one the scroll style
+  const lookBtn = (field, options, label, bottom) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "dev-reset dev-look";
+    b.style.bottom = bottom;
+    const show = () => {
+      const v = look[field];
+      b.textContent = `${label}: ${v === "daily" ? `daily (${DAILY_SCROLL})` : v}`;
+    };
+    b.addEventListener("click", () => {
+      look[field] = options[(options.indexOf(look[field]) + 1) % options.length];
+      applyLook();
+      try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
+      show();
+    });
+    show();
+    document.body.append(b);
+  };
+  lookBtn("scroll", SCROLLS, "Scroll", "12px");
+  lookBtn("background", BACKGROUNDS, "Background", "48px");
 }

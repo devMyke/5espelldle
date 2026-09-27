@@ -3,3 +3,6 @@ dnd-data/
 DnD_5e_Perfect_Spells/
 __pycache__/
 .DS_Store
+
+# Raw generated artwork; only needed to re-run tools/scroll_assets.py
+img/raw/

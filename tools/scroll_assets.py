@@ -1,0 +1,90 @@
+"""
+Turns the raw generated artwork for a themed scroll into web-ready pieces.
+
+  python tools/scroll_assets.py
+
+Reads img/raw/<school>/ and writes img/<school>/:
+  roll-top.webp, roll-bottom.webp  just the rolled paper and its end caps
+  middle.webp                      the sheet, blended so it repeats top to bottom
+  sigil.webp                       decal drawn on the paper behind the game
+  sigil-hole.webp                  mask of the hole burnt through the sigil, used
+                                   to cut the same hole in the sheet underneath
+The crop boxes below were measured from the raw images; if you replace a raw
+image, re-measure them (the alpha channel shows where the artwork is). The
+border-image slice numbers in style.css are in output pixels: raw slice x scale.
+"""
+from pathlib import Path
+import numpy as np
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parent.parent
+
+SCHOOLS = {
+    "evocation": {
+        "roll-top":    ("ChatGPT Image Sep 27, 2026, 06_34_31 PM.png", (0, 70, 2172, 338)),
+        "roll-bottom": ("c6b118b9-63c0-407e-989b-9e163a84210f.png", (0, 396, 2172, 644)),
+        "middle":      ("284ae64e-96ec-46e9-b84e-22f87325b943.png", (0, 78, 1672, 882)),
+        "sigil":       ("cd2a177e-2303-4776-8397-5097f804e20d.png", None),
+        "middle_blend": 140,   # px of overlap used to hide the repeat seam
+        "sigil_hole_seed": (520, 600),   # a raw-image pixel inside the sigil's transparent hole
+        # output heights/widths: about twice their on-screen size, so they stay
+        # crisp on high-density screens without shipping the full raw files
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 930), "sigil": ("w", 500)},
+    },
+}
+
+
+def seamless_vertical(im, band):
+    """Cross-fade the bottom `band` rows into the top ones so the image tiles vertically."""
+    a = np.asarray(im).astype(np.float32) / 255.0
+    rgb, alpha = a[..., :3] * a[..., 3:], a[..., 3:]          # premultiply so edges don't halo
+    h = a.shape[0]
+    top, bottom = slice(0, band), slice(h - band, h)
+    t = np.linspace(0, 1, band, dtype=np.float32)[:, None, None]   # 0 = all bottom, 1 = all top
+    rgb[top] = rgb[bottom] * (1 - t) + rgb[top] * t
+    alpha[top] = alpha[bottom] * (1 - t) + alpha[top] * t
+    rgb, alpha = rgb[: h - band], alpha[: h - band]
+    out = np.concatenate([np.where(alpha > 0, rgb / np.maximum(alpha, 1e-6), 0), alpha], axis=-1)
+    return Image.fromarray((out * 255).round().astype(np.uint8), "RGBA")
+
+
+def hole_mask(im, seed):
+    """Opaque where the see-through hole is: the transparent region connected to `seed`."""
+    clear = np.asarray(im)[..., 3] < 128
+    mask = np.zeros_like(clear)
+    stack = [seed[::-1]]
+    while stack:
+        y, x = stack.pop()
+        if 0 <= y < clear.shape[0] and 0 <= x < clear.shape[1] and clear[y, x] and not mask[y, x]:
+            mask[y, x] = True
+            stack += [(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)]
+    if mask.sum() > clear.size * 0.05:
+        raise SystemExit("sigil hole leaks into the background; check sigil_hole_seed")
+    alpha = (mask * 255).astype(np.uint8)
+    return Image.merge("RGBA", [Image.new("L", im.size, 0)] * 3 + [Image.fromarray(alpha)])
+
+
+def main():
+    for school, cfg in SCHOOLS.items():
+        src, dst = ROOT / "img" / "raw" / school, ROOT / "img" / school
+        dst.mkdir(parents=True, exist_ok=True)
+        for name in ("roll-top", "roll-bottom", "middle", "sigil"):
+            file, box = cfg[name]
+            im = Image.open(src / file).convert("RGBA")
+            if box:
+                im = im.crop(box)
+            if name == "middle":
+                im = seamless_vertical(im, cfg["middle_blend"])
+            extra = {"sigil-hole": hole_mask(im, cfg["sigil_hole_seed"])} if name == "sigil" else {}
+            axis, px = cfg["sizes"][name]
+            scale = px / (im.height if axis == "h" else im.width)
+            size = (round(im.width * scale), round(im.height * scale))
+            for out_name, out_im in {name: im, **extra}.items():
+                out_im = out_im.resize(size, Image.LANCZOS)
+                out = dst / f"{out_name}.webp"
+                out_im.save(out, "WEBP", quality=86, method=6)
+                print(f"{out.relative_to(ROOT)}  {size[0]}x{size[1]}  scale {scale:.3f}  {out.stat().st_size // 1024} KB")
+
+
+if __name__ == "__main__":
+    main()
