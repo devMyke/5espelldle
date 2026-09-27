@@ -434,6 +434,41 @@ main {
   cursor: pointer;
 }
 
+/* Spell card after a win: styled like a sourcebook stat block */
+.spell-card {
+  --card-ink: #2b1d10;
+  --card-red: #6b1d0e;
+  margin: 18px auto 0;
+  padding: 18px 22px 16px;
+  text-align: left;
+  color: var(--card-ink);
+  background: #f6ecd4;
+  border: 1px solid rgba(107, 29, 14, 0.35);
+  border-radius: 4px;
+  box-shadow: inset 0 0 24px rgba(140, 95, 40, 0.18), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.spell-card header { padding-bottom: 8px; margin-bottom: 10px; border-bottom: 2px solid transparent;
+  border-image: linear-gradient(to right, var(--card-red), transparent) 1; }
+.spell-card h3 { margin: 0; font: 800 1.5rem/1.15 var(--display); color: var(--card-red); letter-spacing: 0.02em; }
+.result .spell-card .spell-kind { margin: 2px 0 0; font-style: italic; }
+.spell-card dl { margin: 0; }
+.spell-card dt { display: inline; font-weight: 800; color: var(--card-red); }
+.spell-card dt::after { content: ": "; }
+.spell-card dd { display: inline; margin: 0; }
+.spell-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 3px 18px;
+  padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(107, 29, 14, 0.3); }
+.spell-desc { line-height: 1.5; }
+.result .spell-card .spell-desc p { margin: 0 0 9px; }
+.spell-desc table { width: 100%; margin: 4px 0 12px; border-collapse: collapse; font-size: 0.92em; }
+.spell-desc th, .spell-desc td { padding: 4px 8px; text-align: left; vertical-align: top; }
+.spell-desc th:first-child, .spell-desc td:first-child { white-space: nowrap; }
+.spell-desc th { color: var(--card-red); border-bottom: 1px solid rgba(107, 29, 14, 0.4); }
+.spell-desc tbody tr:nth-child(odd) { background: rgba(140, 95, 40, 0.1); }
+.result .spell-card .spell-note { font-style: italic; color: #6a5238; }
+.result .spell-card .spell-credit { margin: 10px 0 0; font-size: 0.75rem; color: #7a6346; }
+.spell-extras { display: grid; gap: 2px; padding-top: 10px; margin-top: 4px; font-size: 0.92rem;
+  border-top: 1px solid rgba(107, 29, 14, 0.3); }
+
 /* ---------- How to play ---------- */
 .how {
   max-width: 760px;

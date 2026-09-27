@@ -284,7 +284,7 @@ function renderResult() {
   const won = isWon();
   els.result.replaceChildren();
   const h = document.createElement("h2");
-  h.textContent = won ? ANSWER.name : "Out of spell slots";
+  h.textContent = won ? "Solved!" : "Out of spell slots";   // the spell card below carries the name
   const p = document.createElement("p");
   p.textContent = won
     ? `Solved in ${state.guesses.length} guess${state.guesses.length === 1 ? "" : "es"}. Try another mode, or come back at midnight.`
@@ -293,9 +293,99 @@ function renderResult() {
   btn.type = "button";
   btn.textContent = "Copy result";
   btn.addEventListener("click", shareResult);
-  els.result.append(h, p, btn);
+  els.result.append(h, p, btn, spellCard(ANSWER));
   els.result.hidden = false;
   els.input.placeholder = won ? "Solved – see you tomorrow" : "Come back tomorrow";
+}
+
+/* ---------- Spell card, shown once the day's game is over (win or loss) ----------
+   Stats come from spells.js. Rules text exists only for SRD spells and lives in
+   spell-text.js (built by tools/build_spell_text.py), loaded the first time a
+   card is shown so ordinary visits don't pay for it. */
+const BOOKS = {
+  PHB: "Player's Handbook", SCAG: "Sword Coast Adventurer's Guide", "Xanathar's": "Xanathar's Guide to Everything",
+  "Tasha's": "Tasha's Cauldron of Everything", "Fizban's": "Fizban's Treasury of Dragons",
+  Strixhaven: "Strixhaven: A Curriculum of Chaos",
+};
+let spellTextLoad = null;
+function loadSpellText() {
+  spellTextLoad ??= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "spell-text.js";
+    s.onload = () => resolve(SPELL_TEXT);   // eslint-disable-line no-undef
+    s.onerror = () => { spellTextLoad = null; reject(); };
+    document.head.append(s);
+  });
+  return spellTextLoad;
+}
+
+const esc = t => t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const inline = t => esc(t)
+  .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  .replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+// The SRD text is paragraphs, with the odd Markdown table ("| d10 | Behavior |")
+function formatText(paras) {
+  let html = "", rows = [];
+  const flush = () => {
+    if (!rows.length) return;
+    const [head, ...body] = rows.map(r => r.replace(/^\||\|$/g, "").split("|").map(c => inline(c.trim())));
+    html += `<table><thead><tr>${head.map(c => `<th>${c}</th>`).join("")}</tr></thead>`
+          + `<tbody>${body.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    rows = [];
+  };
+  for (const p of paras) {
+    if (p.trim().startsWith("|")) { if (!/^\|[\s|:-]+\|$/.test(p.trim())) rows.push(p.trim()); continue; }
+    flush();
+    html += `<p>${inline(p)}</p>`;
+  }
+  flush();
+  return html;
+}
+
+function spellCard(s) {
+  const card = document.createElement("article");
+  card.className = "spell-card";
+  const ritual = s.tags.includes("Ritual") ? " (ritual)" : "";
+  const conc = s.tags.includes("Concentration");
+  const stats = [
+    ["Casting Time", s.castingTime],
+    ["Range", s.range],
+    ["Components", s.components.join(", ")],
+    ["Duration", conc ? `Concentration, up to ${s.duration.toLowerCase()}` : s.duration],
+  ];
+  const extras = [
+    ["Classes", s.classes.join(", ")],
+    s.damage.length && ["Damage", s.damage.join(", ")],
+    !s.save.includes("None") && ["Save / Attack", s.save.join(", ")],
+    ["Source", BOOKS[s.book] || s.book],
+  ].filter(Boolean);
+  card.innerHTML = `
+    <header>
+      <h3>${esc(s.name)}</h3>
+      <p class="spell-kind">${esc(describe(s))}${ritual}</p>
+    </header>
+    <dl class="spell-stats">${stats.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+    <div class="spell-desc"><p class="spell-note">Loading the spell description…</p></div>
+    <dl class="spell-extras">${extras.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`;
+
+  const desc = card.querySelector(".spell-desc");
+  const components = card.querySelector(".spell-stats div:nth-child(3) dd");
+  loadSpellText().then(text => {
+    const t = text[s.name];
+    if (!t) {
+      desc.innerHTML = `<p class="spell-note">This spell isn't in the free System Reference Document, so its full description isn't included here. You'll find it in <em>${esc(BOOKS[s.book] || s.book)}</em>.</p>`;
+      return;
+    }
+    if (t.material) components.textContent = `${s.components.join(", ")} (${t.material})`;
+    desc.innerHTML = formatText(t.desc)
+      + (t.higher ? `<p><strong><em>At Higher Levels.</em></strong> ${formatText(t.higher).replace(/^<p>|<\/p>$/g, "")}</p>` : "")
+      + `<p class="spell-credit">Spell text from the SRD 5.1, CC BY 4.0.</p>`;
+  }).catch(() => {
+    desc.innerHTML = `<p class="spell-note">Couldn't load the spell description.</p>`;
+  });
+  return card;
 }
 
 function renderAll() {
@@ -507,7 +597,7 @@ function divineIntervention() {
 function divineReveal() {
   if (isWon()) { say("The gods smile on you, but you've already solved it."); return; }
   const guesses = guessedSpells();
-  const hidden = COLUMNS.map((col, i) => i).filter(i =>
+  const hidden = COLUMNS.map((_, i) => i).filter(i =>
     !state.divineCols.includes(i) && !guesses.some(g => compare(COLUMNS[i], g, ANSWER).cls === "good"));
   const picks = shuffled(hidden, Math.floor(Math.random() * 1e9)).slice(0, DIVINE.reveals);
   if (!picks.length) { say("The gods smile on you, but there's nothing left to reveal."); return; }
