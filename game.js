@@ -401,7 +401,25 @@ function renderAll() {
   renderSlots();
   renderClue();
   renderResult();
+  renderSigil();
 }
+
+/* The school sigil behind the board unveils a little more with each guess,
+   and all of it once the game is over. Its top already shows before the first guess. */
+const SIGIL_START = 0.3;
+function renderSigil() {
+  const main = document.querySelector("main");
+  const reveal = isOver() ? 1 : SIGIL_START + (1 - SIGIL_START) * state.guesses.length / MAX_GUESSES;
+  main.style.setProperty("--sigil-reveal", reveal);
+  placeSigil();
+}
+// Line the top of the sigil up with the guess rows, wherever they end up
+function placeSigil() {
+  const main = document.querySelector("main");
+  const top = els.rows.getBoundingClientRect().top - main.getBoundingClientRect().top;
+  main.style.setProperty("--sigil-top", `${Math.round(top) + 8}px`);
+}
+new ResizeObserver(placeSigil).observe(document.querySelector("main"));
 
 function setMode(id) {
   MODE = MODES.find(m => m.id === id) || MODES.find(m => m.id === DEFAULT_MODE);
@@ -409,6 +427,7 @@ function setMode(id) {
   state = store.modes[MODE.id];
   store.lastMode = MODE.id;
   saveStore();
+  applyLook();
   if (location.hash.slice(1) !== MODE.id) history.replaceState(null, "", "#" + MODE.id);
   say("");
   els.input.value = "";
@@ -445,6 +464,7 @@ function submitGuess(name) {
   renderSummary();
   renderSlots();
   renderClue();
+  renderSigil();
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   setTimeout(() => { renderResult(); renderModes(); }, reduced ? 0 : COLUMNS.length * 80 + 450);
 }
@@ -688,23 +708,23 @@ function tick() {
    ========================================================================= */
 renderHeader();
 /* Looks: data-theme sets the page background, data-scroll the style of the
-   parchment scroll the game sits on. Every day the scroll matches the school
-   of that day's Grand Magus answer, whichever mode you play (a quiet hint for
-   anyone who notices); schools without their own design yet use the plain
-   scroll. The testing buttons below can override both locally. */
+   parchment scroll the game sits on. The scroll matches the school of the
+   answer in the mode you're playing (a quiet hint for anyone who notices), so
+   it changes as you switch modes; schools without their own design yet use the
+   plain scroll. The testing buttons below can override both locally. */
 const BACKGROUNDS = ["tavern", "night"];
 const SCROLLS = ["daily", "plain", "abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 const LOOK_KEY = "5espelldle-look";
-const DAILY_SCROLL = answerFor(MODES.find(m => m.id === "magus")).answer.school.toLowerCase();
+const dailyScroll = () => ANSWER.school.toLowerCase();
 let look = { background: BACKGROUNDS[0], scroll: "daily" };
 try { look = { ...look, ...JSON.parse(localStorage.getItem(LOOK_KEY)) }; } catch { /* storage unavailable */ }
 function applyLook() {
   if (!BACKGROUNDS.includes(look.background)) look.background = BACKGROUNDS[0];
   if (!SCROLLS.includes(look.scroll)) look.scroll = "daily";
   document.documentElement.dataset.theme = look.background;
-  document.documentElement.dataset.scroll = look.scroll === "daily" ? DAILY_SCROLL : look.scroll;
+  document.documentElement.dataset.scroll = look.scroll === "daily" ? dailyScroll() : look.scroll;
+  document.dispatchEvent(new Event("lookchange"));
 }
-applyLook();
 
 setMode(location.hash.slice(1) || store.lastMode || DEFAULT_MODE);
 window.addEventListener("hashchange", () => setMode(location.hash.slice(1)));
@@ -735,15 +755,15 @@ if (["localhost", "127.0.0.1", ""].includes(location.hostname)) {
     b.style.bottom = bottom;
     const show = () => {
       const v = look[field];
-      b.textContent = `${label}: ${v === "daily" ? `daily (${DAILY_SCROLL})` : v}`;
+      b.textContent = `${label}: ${v === "daily" ? `daily (${dailyScroll()})` : v}`;
     };
     b.addEventListener("click", () => {
       look[field] = options[(options.indexOf(look[field]) + 1) % options.length];
       applyLook();
       try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
-      show();
     });
     show();
+    document.addEventListener("lookchange", show);   // the daily scroll changes with the mode
     document.body.append(b);
   };
   lookBtn("scroll", SCROLLS, "Scroll", "12px");

@@ -146,6 +146,10 @@
 [data-scroll] main::after  { bottom: calc(-1 * var(--roll-h) / 2); }
 [data-scroll] footer { margin-top: auto; }
 
+/* How much of the school sigil is showing, 0 to 1 (set by game.js).
+   Registered so it can be transitioned. */
+@property --sigil-reveal { syntax: "<number>"; inherits: true; initial-value: 0; }
+
 /* ---------- School scrolls ----------
    Painted schools swap the CSS paper and rollers for artwork in img/<school>/
    (built from img/raw/<school>/ by tools/scroll_assets.py). The layout below
@@ -154,7 +158,17 @@
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main {
   --roll-h: 52px;
   --art-hole: none;   /* optional see-through hole cut where the sigil sits */
-  --sigil: left 26px top 34px / 250px auto no-repeat;   /* where the sigil (and its hole) sit */
+  /* The sigil sits big and centred behind the board (game.js sets --sigil-top
+     to where the guess rows start) and is wiped in from the top as guesses are
+     made. It's lifted so its top already shows behind the summary before the
+     first guess. */
+  --sigil-size: min(760px, 88vw);
+  --sigil-lift: 200px;
+  --sigil: 50% calc(var(--sigil-top, 0px) - var(--sigil-lift)) / var(--sigil-size) var(--sigil-size) no-repeat;
+  /* opaque over the revealed part of the sigil, with a soft leading edge */
+  --sigil-shown: linear-gradient(#000 calc((var(--sigil-reveal) * 1.25 - 0.25) * 100%), transparent calc(var(--sigil-reveal) * 1.25 * 100%));
+  --sigil-hidden: linear-gradient(transparent calc((var(--sigil-reveal) * 1.25 - 0.25) * 100%), #000 calc(var(--sigil-reveal) * 1.25 * 100%));
+  transition: --sigil-reveal 1.6s ease-out;
   /* let the painted paper show through the UI instead of pale cream boxes */
   --panel: rgba(250, 234, 200, 0.5);
   --line: rgba(110, 60, 20, 0.35);
@@ -170,18 +184,21 @@
   border-style: solid;
   border-width: 0 var(--edge-w);
   border-image: var(--art-middle) 0 var(--middle-slice) fill / 0 var(--edge-w) / 0 stretch round;
-  /* cut the sigil's hole (if it has one) out of the sheet too, so it's see-through */
-  -webkit-mask: var(--art-hole) var(--sigil), linear-gradient(#000, #000);
-  mask: var(--art-hole) var(--sigil), linear-gradient(#000, #000);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  /* cut the sigil's hole (if it has one) out of the sheet too, so it's see-through,
+     but only as far as the sigil has been revealed: (sheet - hole) + unrevealed */
+  -webkit-mask: var(--sigil-hidden) var(--sigil), var(--art-hole) var(--sigil), linear-gradient(#000, #000);
+  mask: var(--sigil-hidden) var(--sigil), var(--art-hole) var(--sigil), linear-gradient(#000, #000);
+  -webkit-mask-composite: source-over, xor;
+  mask-composite: add, exclude;
 }
-/* The sigil, in the open space left of the guess input */
+/* The sigil, behind the board */
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::after {
   -webkit-mask: none;
   mask: none;
   box-shadow: none;
   background: var(--art-sigil) var(--sigil);
+  -webkit-mask: var(--sigil-shown) var(--sigil);
+  mask: var(--sigil-shown) var(--sigil);
 }
 /* Rollers: the end caps keep their shape, the roll stretches between them */
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::before,
@@ -197,11 +214,6 @@
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::after {
   border-width: 0 var(--roll-bottom-w);
   border-image: var(--art-roll-bottom) 0 var(--roll-bottom-slice) fill / 0 var(--roll-bottom-w) / 0 stretch;
-}
-/* On phones the sigil would sit under the input, so leave it out */
-@media (max-width: 700px) {
-  :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::before { -webkit-mask: none; mask: none; }
-  :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::after { background: none; }
 }
 
 /* Abjuration: silver end caps and glowing blue ward-runes down the edges */
