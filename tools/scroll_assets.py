@@ -7,8 +7,8 @@ Reads img/raw/<school>/ and writes img/<school>/:
   roll-top.webp, roll-bottom.webp  just the rolled paper and its end caps
   middle.webp                      the sheet, blended so it repeats top to bottom
   sigil.webp                       decal drawn on the paper behind the game
-  sigil-hole.webp                  mask of the hole burnt through the sigil, used
-                                   to cut the same hole in the sheet underneath
+  sigil-hole.webp                  (optional) mask of a hole burnt through the sigil,
+                                   used to cut the same hole in the sheet underneath
 The crop boxes below were measured from the raw images; if you replace a raw
 image, re-measure them (the alpha channel shows where the artwork is). The
 border-image slice numbers in style.css are in output pixels: raw slice x scale.
@@ -30,6 +30,67 @@ SCHOOLS = {
         # output heights/widths: about twice their on-screen size, so they stay
         # crisp on high-density screens without shipping the full raw files
         "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 930), "sigil": ("w", 500)},
+    },
+    "illusion": {
+        "roll-top":    ("ChatGPT Image Sep 30, 2026, 06_37_08 PM.png", (0, 60, 2172, 330)),
+        "roll-bottom": ("ChatGPT Image Sep 30, 2026, 06_37_11 PM.png", (0, 350, 2172, 620)),
+        "middle":      ("ChatGPT Image Sep 30, 2026, 06_37_17 PM.png", (0, 84, 1672, 866)),
+        "sigil":       ("ChatGPT Image Sep 30, 2026, 06_37_21 PM.png", None),
+        "middle_blend": 140,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 684), "sigil": ("w", 500)},
+    },
+    "abjuration": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 12_55_35 PM.png", (0, 46, 1536, 232)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 12_55_30 PM.png", (0, 766, 1536, 962)),
+        # cropped between the big rune circles at the top and bottom, which ghost when blended
+        "middle":      ("ChatGPT Image Oct 3, 2026, 12_55_25 PM.png", (0, 170, 1672, 770)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 12_55_19 PM.png", None),
+        "middle_blend": 140,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 836), "sigil": ("w", 500)},
+    },
+    "divination": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 01_36_42 PM.png", (0, 78, 1536, 278)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 01_36_36 PM.png", (0, 760, 1536, 950)),
+        # no separate sheet image: cut from the stretch of sheet hanging below the top roll
+        "middle":      ("ChatGPT Image Oct 3, 2026, 01_36_42 PM.png", (40, 370, 1496, 830)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 01_36_31 PM.png", None),
+        "middle_blend": 120,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 728), "sigil": ("w", 500)},
+    },
+    "enchantment": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 01_58_22 PM.png", (0, 55, 1536, 250)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 01_58_18 PM.png", (0, 722, 1536, 935)),
+        # no separate sheet image: cut from the sheet above the bottom roll, where the smoke waves repeat evenly
+        "middle":      ("ChatGPT Image Oct 3, 2026, 01_58_18 PM.png", (40, 120, 1496, 700)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 01_58_14 PM.png", None),
+        "middle_blend": 120,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 728), "sigil": ("w", 500)},
+    },
+    # The sheets below are cut to a whole number of repeats of their border
+    # motif (plus the blend), so the pattern lines up across the seam.
+    "conjuration": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 02_07_41 PM.png", (0, 70, 1536, 250)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 02_07_36 PM.png", (0, 720, 1536, 900)),
+        "middle":      ("ChatGPT Image Oct 3, 2026, 02_07_36 PM.png", (40, 150, 1496, 560)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 02_07_31 PM.png", None),
+        "middle_blend": 120,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 728), "sigil": ("w", 500)},
+    },
+    "necromancy": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 02_28_12 PM.png", (0, 45, 1536, 215)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 02_28_05 PM.png", (0, 755, 1536, 935)),
+        "middle":      ("ChatGPT Image Oct 3, 2026, 02_28_12 PM.png", (40, 380, 1496, 815)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 02_28_00 PM.png", None),
+        "middle_blend": 120,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 728), "sigil": ("w", 500)},
+    },
+    "transmutation": {
+        "roll-top":    ("ChatGPT Image Oct 3, 2026, 02_58_44 PM.png", (0, 20, 1536, 240)),
+        "roll-bottom": ("ChatGPT Image Oct 3, 2026, 02_58_49 PM.png", (0, 745, 1536, 950)),
+        "middle":      ("ChatGPT Image Oct 3, 2026, 02_58_44 PM.png", (40, 330, 1496, 820)),
+        "sigil":       ("ChatGPT Image Oct 3, 2026, 03_00_04 PM.png", None),
+        "middle_blend": 120,
+        "sizes": {"roll-top": ("h", 120), "roll-bottom": ("h", 120), "middle": ("w", 728), "sigil": ("w", 500)},
     },
 }
 
@@ -75,7 +136,7 @@ def main():
                 im = im.crop(box)
             if name == "middle":
                 im = seamless_vertical(im, cfg["middle_blend"])
-            extra = {"sigil-hole": hole_mask(im, cfg["sigil_hole_seed"])} if name == "sigil" else {}
+            extra = {"sigil-hole": hole_mask(im, cfg["sigil_hole_seed"])} if name == "sigil" and "sigil_hole_seed" in cfg else {}
             axis, px = cfg["sizes"][name]
             scale = px / (im.height if axis == "h" else im.width)
             size = (round(im.width * scale), round(im.height * scale))

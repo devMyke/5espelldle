@@ -293,7 +293,10 @@ function renderResult() {
   btn.type = "button";
   btn.textContent = "Copy result";
   btn.addEventListener("click", shareResult);
-  els.result.append(h, p, btn, spellCard(ANSWER));
+  const support = document.createElement("p");
+  support.className = "support";
+  support.innerHTML = `Enjoying 5eSpellDLE? <a href="support/" target="_blank" rel="noopener">☕ Buy me a coffee</a>`;
+  els.result.append(h, p, btn, support, spellCard(ANSWER));
   els.result.hidden = false;
   els.input.placeholder = won ? "Solved – see you tomorrow" : "Come back tomorrow";
 }
@@ -690,7 +693,7 @@ renderHeader();
    anyone who notices); schools without their own design yet use the plain
    scroll. The testing buttons below can override both locally. */
 const BACKGROUNDS = ["tavern", "night"];
-const SCROLLS = ["daily", "plain", "evocation"];
+const SCROLLS = ["daily", "plain", "abjuration", "conjuration", "divination", "enchantment", "evocation", "illusion", "necromancy", "transmutation"];
 const LOOK_KEY = "5espelldle-look";
 const DAILY_SCROLL = answerFor(MODES.find(m => m.id === "magus")).answer.school.toLowerCase();
 let look = { background: BACKGROUNDS[0], scroll: "daily" };

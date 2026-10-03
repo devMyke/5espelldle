@@ -147,60 +147,129 @@
 [data-scroll] footer { margin-top: auto; }
 
 /* ---------- School scrolls ----------
-   One block per school. Painted schools swap the CSS paper and rollers for
-   artwork in img/<school>/ (built from img/raw/<school>/ by
-   tools/scroll_assets.py). Schools without a block use the plain scroll. */
-
-/* Evocation: a scroll that's been set alight */
-[data-scroll="evocation"] main {
+   Painted schools swap the CSS paper and rollers for artwork in img/<school>/
+   (built from img/raw/<school>/ by tools/scroll_assets.py). The layout below
+   is shared; each school only sets its artwork and sizes. Schools without a
+   block use the plain scroll. Slice numbers are in the built images' pixels. */
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main {
   --roll-h: 52px;
-  --edge-w: 52px;   /* on-screen width of each burnt edge */
+  --art-hole: none;   /* optional see-through hole cut where the sigil sits */
   --sigil: left 26px top 34px / 250px auto no-repeat;   /* where the sigil (and its hole) sit */
-  /* Experiment: let the painted paper show through the UI instead of pale cream boxes */
+  /* let the painted paper show through the UI instead of pale cream boxes */
   --panel: rgba(250, 234, 200, 0.5);
   --line: rgba(110, 60, 20, 0.35);
 }
-[data-scroll="evocation"] #guess-input { background: rgba(255, 247, 230, 0.82); }
-[data-scroll="evocation"] #suggestions { background: #f6e8cc; }   /* stays solid: it opens over the board
-/* The sheet: burnt edges stay a fixed width, the middle stretches sideways,
-   and the whole strip repeats downwards as the board grows */
-[data-scroll="evocation"] .paper::before {
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) #guess-input { background: rgba(255, 247, 230, 0.82); }
+/* stays solid: it opens over the board */
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) #suggestions { background: #f6e8cc; }
+
+/* The sheet: the painted edges stay a fixed width, the middle stretches
+   sideways, and the whole strip repeats downwards as the board grows */
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::before {
   background: none;
   border-style: solid;
   border-width: 0 var(--edge-w);
-  border-image: url("img/evocation/middle.webp") 0 100 fill / 0 var(--edge-w) / 0 stretch round;
-  /* cut the sigil's burnt-through hole out of the sheet too, so it's see-through */
-  -webkit-mask: url("img/evocation/sigil-hole.webp") var(--sigil), linear-gradient(#000, #000);
-  mask: url("img/evocation/sigil-hole.webp") var(--sigil), linear-gradient(#000, #000);
+  border-image: var(--art-middle) 0 var(--middle-slice) fill / 0 var(--edge-w) / 0 stretch round;
+  /* cut the sigil's hole (if it has one) out of the sheet too, so it's see-through */
+  -webkit-mask: var(--art-hole) var(--sigil), linear-gradient(#000, #000);
+  mask: var(--art-hole) var(--sigil), linear-gradient(#000, #000);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
-/* The burning sigil, in the open space left of the guess input */
-[data-scroll="evocation"] .paper::after {
+/* The sigil, in the open space left of the guess input */
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::after {
   -webkit-mask: none;
   mask: none;
   box-shadow: none;
-  background: url("img/evocation/sigil.webp") var(--sigil);
+  background: var(--art-sigil) var(--sigil);
 }
 /* Rollers: the end caps keep their shape, the roll stretches between them */
-[data-scroll="evocation"] main::before,
-[data-scroll="evocation"] main::after {
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::before,
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::after {
   background: none;
   border-radius: 0;
   border-style: solid;
 }
-[data-scroll="evocation"] main::before {
-  border-width: 0 66px;
-  border-image: url("img/evocation/roll-top.webp") 0 152 fill / 0 66px / 0 stretch;
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::before {
+  border-width: 0 var(--roll-top-w);
+  border-image: var(--art-roll-top) 0 var(--roll-top-slice) fill / 0 var(--roll-top-w) / 0 stretch;
 }
-[data-scroll="evocation"] main::after {
-  border-width: 0 69px;
-  border-image: url("img/evocation/roll-bottom.webp") 0 160 fill / 0 69px / 0 stretch;
+:is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::after {
+  border-width: 0 var(--roll-bottom-w);
+  border-image: var(--art-roll-bottom) 0 var(--roll-bottom-slice) fill / 0 var(--roll-bottom-w) / 0 stretch;
 }
 /* On phones the sigil would sit under the input, so leave it out */
 @media (max-width: 700px) {
-  [data-scroll="evocation"] .paper::before { -webkit-mask: none; mask: none; }
-  [data-scroll="evocation"] .paper::after { background: none; }
+  :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::before { -webkit-mask: none; mask: none; }
+  :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) .paper::after { background: none; }
+}
+
+/* Abjuration: silver end caps and glowing blue ward-runes down the edges */
+[data-scroll="abjuration"] main {
+  --art-middle: url("img/abjuration/middle.webp");      --middle-slice: 120;      --edge-w: 60px;
+  --art-roll-top: url("img/abjuration/roll-top.webp");       --roll-top-slice: 172;    --roll-top-w: 75px;
+  --art-roll-bottom: url("img/abjuration/roll-bottom.webp"); --roll-bottom-slice: 225; --roll-bottom-w: 98px;
+  --art-sigil: url("img/abjuration/sigil.webp");
+}
+
+/* Divination: gold end caps and holy-lit constellations down the edges */
+[data-scroll="divination"] main {
+  --art-middle: url("img/divination/middle.webp");      --middle-slice: 130;      --edge-w: 65px;
+  --art-roll-top: url("img/divination/roll-top.webp");       --roll-top-slice: 230;    --roll-top-w: 100px;
+  --art-roll-bottom: url("img/divination/roll-bottom.webp"); --roll-bottom-slice: 240; --roll-bottom-w: 104px;
+  --art-sigil: url("img/divination/sigil.webp");
+}
+
+/* Enchantment: rose-gold end caps and pink smoke winding down the edges */
+[data-scroll="enchantment"] main {
+  --art-middle: url("img/enchantment/middle.webp");      --middle-slice: 135;      --edge-w: 68px;
+  --art-roll-top: url("img/enchantment/roll-top.webp");       --roll-top-slice: 180;    --roll-top-w: 78px;
+  --art-roll-bottom: url("img/enchantment/roll-bottom.webp"); --roll-bottom-slice: 182; --roll-bottom-w: 79px;
+  --art-sigil: url("img/enchantment/sigil.webp");
+}
+
+/* Conjuration: gold end caps set with teal crystals, portal light spiralling down the edges */
+[data-scroll="conjuration"] main {
+  --art-middle: url("img/conjuration/middle.webp");      --middle-slice: 148;      --edge-w: 74px;
+  --art-roll-top: url("img/conjuration/roll-top.webp");       --roll-top-slice: 205;    --roll-top-w: 89px;
+  --art-roll-bottom: url("img/conjuration/roll-bottom.webp"); --roll-bottom-slice: 220; --roll-bottom-w: 95px;
+  --art-sigil: url("img/conjuration/sigil.webp");
+}
+
+/* Necromancy: skull end caps and a spine of bone down each edge */
+[data-scroll="necromancy"] main {
+  --art-middle: url("img/necromancy/middle.webp");      --middle-slice: 100;      --edge-w: 50px;
+  --art-roll-top: url("img/necromancy/roll-top.webp");       --roll-top-slice: 175;    --roll-top-w: 76px;
+  --art-roll-bottom: url("img/necromancy/roll-bottom.webp"); --roll-bottom-slice: 185; --roll-bottom-w: 80px;
+  --art-sigil: url("img/necromancy/sigil.webp");
+}
+
+/* Transmutation: crumbling stone end caps veined with gold, stone chips turning to gold down the edges */
+[data-scroll="transmutation"] main {
+  --art-middle: url("img/transmutation/middle.webp");      --middle-slice: 132;      --edge-w: 66px;
+  --art-roll-top: url("img/transmutation/roll-top.webp");       --roll-top-slice: 152;    --roll-top-w: 66px;
+  --art-roll-bottom: url("img/transmutation/roll-bottom.webp"); --roll-bottom-slice: 162; --roll-bottom-w: 70px;
+  --art-sigil: url("img/transmutation/sigil.webp");
+}
+
+/* Evocation: a scroll that's been set alight */
+[data-scroll="evocation"] main {
+  --art-middle: url("img/evocation/middle.webp");      --middle-slice: 100;      --edge-w: 52px;
+  --art-roll-top: url("img/evocation/roll-top.webp");       --roll-top-slice: 152;    --roll-top-w: 66px;
+  --art-roll-bottom: url("img/evocation/roll-bottom.webp"); --roll-bottom-slice: 160; --roll-bottom-w: 69px;
+  --art-sigil: url("img/evocation/sigil.webp");
+  --art-hole: url("img/evocation/sigil-hole.webp");
+}
+
+/* Illusion: the edges dissolve into lavender mist */
+[data-scroll="illusion"] main {
+  --art-middle: url("img/illusion/middle.webp");      --middle-slice: 180;      --edge-w: 90px;
+  --art-roll-top: url("img/illusion/roll-top.webp");       --roll-top-slice: 160;    --roll-top-w: 69px;
+  --art-roll-bottom: url("img/illusion/roll-bottom.webp"); --roll-bottom-slice: 151; --roll-bottom-w: 65px;
+  --art-sigil: url("img/illusion/sigil.webp");
+}
+@media (max-width: 700px) {
+  [data-scroll="illusion"] main { --edge-w: 54px; }   /* the mist takes too much of a phone screen */
 }
 
 /* scroll-edges:start (generated by tools/scroll_edges.py, don't edit by hand) */
@@ -608,6 +677,13 @@ footer {
   color: var(--muted);
   text-align: center;
 }
+
+/* "Buy me a coffee": links to /support, which forwards to the donation page */
+.support a { font-weight: 700; text-decoration: none; white-space: nowrap; }
+.support a:hover { text-decoration: underline; }
+footer .support { font-size: 0.9rem; color: var(--parchment); }
+.result .support { margin: 12px 0 0; font-size: 0.9rem; color: var(--muted); }
+.result .support a { color: var(--gold); }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 640px) {
