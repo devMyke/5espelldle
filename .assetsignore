@@ -1,0 +1,9 @@
+.git
+.gitignore
+.assetsignore
+wrangler.jsonc
+README.md
+tools
+5e-database
+img/raw
+node_modules

@@ -1,0 +1,8 @@
+{
+  "name": "5espelldle",
+  "compatibility_date": "2026-09-01",
+  // Static site: serve the repo root as-is, no Worker script needed.
+  "assets": {
+    "directory": "."
+  }
+}
