@@ -158,6 +158,7 @@
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main {
   --roll-h: 52px;
   --art-hole: none;   /* optional see-through hole cut where the sigil sits */
+  --roll-top-ext: 0;  --roll-bottom-ext: 0;   /* artwork past the rollers' outer edges, in image px */
   /* The sigil sits big and centred behind the board (game.js sets --sigil-top
      to where the guess rows start) and is wiped in from the top as guesses are
      made. It's lifted so its top already shows behind the summary before the
@@ -209,11 +210,12 @@
 }
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::before {
   border-width: 0 var(--roll-top-w);
-  border-image: var(--art-roll-top) 0 var(--roll-top-slice) fill / 0 var(--roll-top-w) / 0 stretch;
+  /* roller images are 120px tall at --roll-h, plus their glow drawn outside the box */
+  border-image: var(--art-roll-top) 0 var(--roll-top-slice) fill / 0 var(--roll-top-w) / calc(var(--roll-h) * var(--roll-top-ext) / 120) 0 0 stretch;
 }
 :is([data-scroll="evocation"], [data-scroll="illusion"], [data-scroll="abjuration"], [data-scroll="divination"], [data-scroll="enchantment"], [data-scroll="conjuration"], [data-scroll="necromancy"], [data-scroll="transmutation"]) main::after {
   border-width: 0 var(--roll-bottom-w);
-  border-image: var(--art-roll-bottom) 0 var(--roll-bottom-slice) fill / 0 var(--roll-bottom-w) / 0 stretch;
+  border-image: var(--art-roll-bottom) 0 var(--roll-bottom-slice) fill / 0 var(--roll-bottom-w) / 0 0 calc(var(--roll-h) * var(--roll-bottom-ext) / 120) stretch;
 }
 
 /* Abjuration: silver end caps and glowing blue ward-runes down the edges */
@@ -229,6 +231,7 @@
   --art-middle: url("img/divination/middle.webp");      --middle-slice: 130;      --edge-w: 65px;
   --art-roll-top: url("img/divination/roll-top.webp");       --roll-top-slice: 230;    --roll-top-w: 100px;
   --art-roll-bottom: url("img/divination/roll-bottom.webp"); --roll-bottom-slice: 240; --roll-bottom-w: 104px;
+  --roll-top-ext: 47; --roll-bottom-ext: 45;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/divination/sigil.webp");
 }
 
@@ -237,6 +240,7 @@
   --art-middle: url("img/enchantment/middle.webp");      --middle-slice: 135;      --edge-w: 68px;
   --art-roll-top: url("img/enchantment/roll-top.webp");       --roll-top-slice: 180;    --roll-top-w: 78px;
   --art-roll-bottom: url("img/enchantment/roll-bottom.webp"); --roll-bottom-slice: 182; --roll-bottom-w: 79px;
+  --roll-top-ext: 34; --roll-bottom-ext: 44;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/enchantment/sigil.webp");
 }
 
@@ -245,6 +249,7 @@
   --art-middle: url("img/conjuration/middle.webp");      --middle-slice: 148;      --edge-w: 74px;
   --art-roll-top: url("img/conjuration/roll-top.webp");       --roll-top-slice: 205;    --roll-top-w: 89px;
   --art-roll-bottom: url("img/conjuration/roll-bottom.webp"); --roll-bottom-slice: 220; --roll-bottom-w: 95px;
+  --roll-top-ext: 39; --roll-bottom-ext: 75;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/conjuration/sigil.webp");
 }
 
@@ -253,6 +258,7 @@
   --art-middle: url("img/necromancy/middle.webp");      --middle-slice: 100;      --edge-w: 50px;
   --art-roll-top: url("img/necromancy/roll-top.webp");       --roll-top-slice: 175;    --roll-top-w: 76px;
   --art-roll-bottom: url("img/necromancy/roll-bottom.webp"); --roll-bottom-slice: 185; --roll-bottom-w: 80px;
+  --roll-top-ext: 29; --roll-bottom-ext: 51;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/necromancy/sigil.webp");
 }
 
@@ -261,6 +267,7 @@
   --art-middle: url("img/transmutation/middle.webp");      --middle-slice: 132;      --edge-w: 66px;
   --art-roll-top: url("img/transmutation/roll-top.webp");       --roll-top-slice: 152;    --roll-top-w: 66px;
   --art-roll-bottom: url("img/transmutation/roll-bottom.webp"); --roll-bottom-slice: 162; --roll-bottom-w: 70px;
+  --roll-top-ext: 9; --roll-bottom-ext: 40;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/transmutation/sigil.webp");
 }
 
@@ -278,6 +285,7 @@
   --art-middle: url("img/illusion/middle.webp");      --middle-slice: 180;      --edge-w: 90px;
   --art-roll-top: url("img/illusion/roll-top.webp");       --roll-top-slice: 160;    --roll-top-w: 69px;
   --art-roll-bottom: url("img/illusion/roll-bottom.webp"); --roll-bottom-slice: 151; --roll-bottom-w: 65px;
+  --roll-top-ext: 27; --roll-bottom-ext: 32;   /* glow past the rollers, from tools/scroll_assets.py */
   --art-sigil: url("img/illusion/sigil.webp");
 }
 @media (max-width: 700px) {

@@ -12,6 +12,11 @@ Reads img/raw/<school>/ and writes img/<school>/:
 The crop boxes below were measured from the raw images; if you replace a raw
 image, re-measure them (the alpha channel shows where the artwork is). The
 border-image slice numbers in style.css are in output pixels: raw slice x scale.
+
+Roller crop boxes frame just the roller. Any glow or smoke beyond its outer
+edge (above the top roller, below the bottom one) is kept as well, faded out
+towards the image edge, and the "ext" this prints goes into style.css as
+--roll-top-ext / --roll-bottom-ext so it's drawn outside the roller's box.
 """
 from pathlib import Path
 import numpy as np
@@ -125,6 +130,31 @@ def hole_mask(im, seed):
     return Image.merge("RGBA", [Image.new("L", im.size, 0)] * 3 + [Image.fromarray(alpha)])
 
 
+def extend_roller(im, box, outward):
+    """Grow a roller crop outward ("up" or "down") to where the artwork ends, fading
+    the outer part of the extra strip so it never ends in a hard line.
+    Returns the crop and how many raw rows were added."""
+    x0, y0, x1, y1 = box
+    rows = np.where((np.asarray(im)[..., 3] > 8).any(axis=1))[0]
+    if outward == "up":
+        y0, ext = min(y0, rows.min()), y0 - min(y0, rows.min())
+    else:
+        y1, ext = max(y1, rows.max() + 1), max(y1, rows.max() + 1) - y1
+    out = im.crop((x0, y0, x1, y1))
+    if ext:
+        a = np.asarray(out).copy()
+        ramp = np.ones(a.shape[0], np.float32)
+        fade = max(1, round(ext * 0.6))
+        edge = np.linspace(0, 1, fade, dtype=np.float32)
+        if outward == "up":
+            ramp[:fade] = edge
+        else:
+            ramp[-fade:] = edge[::-1]
+        a[..., 3] = (a[..., 3] * ramp[:, None]).round().astype(np.uint8)
+        out = Image.fromarray(a, "RGBA")
+    return out, ext
+
+
 def main():
     for school, cfg in SCHOOLS.items():
         src, dst = ROOT / "img" / "raw" / school, ROOT / "img" / school
@@ -132,19 +162,25 @@ def main():
         for name in ("roll-top", "roll-bottom", "middle", "sigil"):
             file, box = cfg[name]
             im = Image.open(src / file).convert("RGBA")
-            if box:
+            ext = 0
+            if name in ("roll-top", "roll-bottom"):
+                core_h = box[3] - box[1]
+                im, ext = extend_roller(im, box, "up" if name == "roll-top" else "down")
+            elif box:
                 im = im.crop(box)
             if name == "middle":
                 im = seamless_vertical(im, cfg["middle_blend"])
             extra = {"sigil-hole": hole_mask(im, cfg["sigil_hole_seed"])} if name == "sigil" and "sigil_hole_seed" in cfg else {}
             axis, px = cfg["sizes"][name]
-            scale = px / (im.height if axis == "h" else im.width)
+            # rollers are scaled by the roller itself, so the slices don't move when the extension changes
+            scale = px / (core_h if ext else im.height if axis == "h" else im.width)
             size = (round(im.width * scale), round(im.height * scale))
             for out_name, out_im in {name: im, **extra}.items():
                 out_im = out_im.resize(size, Image.LANCZOS)
                 out = dst / f"{out_name}.webp"
                 out_im.save(out, "WEBP", quality=86, method=6)
-                print(f"{out.relative_to(ROOT)}  {size[0]}x{size[1]}  scale {scale:.3f}  {out.stat().st_size // 1024} KB")
+                note = f"  ext {round(ext * scale)}" if ext else ""
+                print(f"{out.relative_to(ROOT)}  {size[0]}x{size[1]}  scale {scale:.3f}  {out.stat().st_size // 1024} KB{note}")
 
 
 if __name__ == "__main__":
