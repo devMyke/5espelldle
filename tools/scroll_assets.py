@@ -17,12 +17,16 @@ Roller crop boxes frame just the roller. Any glow or smoke beyond its outer
 edge (above the top roller, below the bottom one) is kept as well, faded out
 towards the image edge, and the "ext" this prints goes into style.css as
 --roll-top-ext / --roll-bottom-ext so it's drawn outside the roller's box.
+The inner edge (where the roller meets the sheet) is faded out so the bit of
+sheet caught in the roller crop blends into the sheet underneath instead of
+ending in a hard line.
 """
 from pathlib import Path
 import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
+INNER_FADE = 0.3   # share of a roller's height faded out along its inner edge
 
 SCHOOLS = {
     "evocation": {
@@ -155,6 +159,17 @@ def extend_roller(im, box, outward):
     return out, ext
 
 
+def fade_inner(im, rows, side):
+    """Fade the `rows` rows along the image's top or bottom `side` to transparent."""
+    a = np.asarray(im).copy()
+    ramp = np.linspace(0, 1, rows, dtype=np.float32) ** 1.5   # eased, so the roller itself stays solid
+    if side == "top":
+        a[:rows, :, 3] = (a[:rows, :, 3] * ramp[:, None]).round().astype(np.uint8)
+    else:
+        a[-rows:, :, 3] = (a[-rows:, :, 3] * ramp[::-1, None]).round().astype(np.uint8)
+    return Image.fromarray(a, "RGBA")
+
+
 def main():
     for school, cfg in SCHOOLS.items():
         src, dst = ROOT / "img" / "raw" / school, ROOT / "img" / school
@@ -162,10 +177,11 @@ def main():
         for name in ("roll-top", "roll-bottom", "middle", "sigil"):
             file, box = cfg[name]
             im = Image.open(src / file).convert("RGBA")
-            ext = 0
+            ext = core_h = 0
             if name in ("roll-top", "roll-bottom"):
                 core_h = box[3] - box[1]
                 im, ext = extend_roller(im, box, "up" if name == "roll-top" else "down")
+                im = fade_inner(im, round(core_h * INNER_FADE), "bottom" if name == "roll-top" else "top")
             elif box:
                 im = im.crop(box)
             if name == "middle":
@@ -173,7 +189,7 @@ def main():
             extra = {"sigil-hole": hole_mask(im, cfg["sigil_hole_seed"])} if name == "sigil" and "sigil_hole_seed" in cfg else {}
             axis, px = cfg["sizes"][name]
             # rollers are scaled by the roller itself, so the slices don't move when the extension changes
-            scale = px / (core_h if ext else im.height if axis == "h" else im.width)
+            scale = px / (core_h if core_h else im.height if axis == "h" else im.width)
             size = (round(im.width * scale), round(im.height * scale))
             for out_name, out_im in {name: im, **extra}.items():
                 out_im = out_im.resize(size, Image.LANCZOS)
