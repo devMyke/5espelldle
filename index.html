@@ -23,6 +23,34 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="5eSpellDLE: guess the daily D&amp;D 5e spell">
   <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Structured data: WebSite sets the site name Google shows above the
+       result; WebApplication describes the game itself. -->
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "5eSpellDLE",
+      "alternateName": ["5e SpellDLE", "5e Spelldle"],
+      "url": "https://5espelldle.com/"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "5eSpellDLE",
+      "url": "https://5espelldle.com/",
+      "description": "A free daily Wordle-style game where you guess the D&D 5e spell of the day from its level, school, classes, components and more. Five modes, from Easy to Grand Magus and BG3.",
+      "applicationCategory": "GameApplication",
+      "genre": "Puzzle",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript",
+      "image": "https://5espelldle.com/og-image.png",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  ]
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Alegreya+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -42,6 +70,9 @@
 
   <main>
     <div class="paper" aria-hidden="true"></div>
+    <!-- data-nosnippet: keep search engines from using game text (clues, spell
+         descriptions) as the result snippet instead of the meta description. -->
+    <div data-nosnippet>
     <p class="meta">
       Spell <strong id="puzzle-no">#1</strong>
       <span class="sep" aria-hidden="true"></span>
@@ -69,6 +100,7 @@
     <p id="message" class="message" role="status" aria-live="polite"></p>
 
     <section id="result" class="result" hidden></section>
+    </div>
 
     <details class="how">
       <summary>How to play</summary>
@@ -82,7 +114,7 @@
       <p>You have 10 spell slots. After 4 guesses you can reveal a clue. A new spell appears at midnight, your time.</p>
     </details>
 
-    <div class="board-wrap">
+    <div class="board-wrap" data-nosnippet>
       <table class="board" id="board">
         <thead>
           <tr class="summary" id="summary-row"></tr>
