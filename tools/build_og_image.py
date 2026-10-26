@@ -68,12 +68,35 @@ def og_image(art, cinzel):
     return im.convert("RGB")
 
 
+def thumbnail(art, cinzel):
+    """A 600x400 card for game listings: art on top, title underneath."""
+    w, h = 600, 400
+    im = Image.new("RGBA", (w, h), NIGHT + (255,))
+
+    glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((170, 15, 430, 275), fill=GOLD + (60,))
+    im.alpha_composite(glow.filter(ImageFilter.GaussianBlur(40)))
+
+    size = 250
+    art = art.resize((size, round(art.height * size / art.width)), Image.LANCZOS)
+    im.alpha_composite(art, ((w - art.width) // 2, 20))
+
+    d = ImageDraw.Draw(im)
+    d.text((w // 2, 300), "5eSpellDLE", font=font(cinzel, 58, 800),
+           fill=GOLD, anchor="mm")
+    d.text((w // 2, 355), "Guess the daily D&D 5e spell",
+           font=font(cinzel, 28, 600), fill=PARCHMENT, anchor="mm")
+    return im.convert("RGB")
+
+
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     art = cut_out(Image.open(sys.argv[1]))
-    og_image(art, Path(sys.argv[2])).save(ROOT / "og-image.png", optimize=True)
-    print("Wrote og-image.png")
+    cinzel = Path(sys.argv[2])
+    og_image(art, cinzel).save(ROOT / "og-image.png", optimize=True)
+    thumbnail(art, cinzel).save(ROOT / "thumbnail.png", optimize=True)
+    print("Wrote og-image.png and thumbnail.png")
 
 
 if __name__ == "__main__":
